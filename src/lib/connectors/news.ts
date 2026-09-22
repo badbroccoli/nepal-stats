@@ -146,6 +146,30 @@ export async function fetchNepalNews(): Promise<NewsItem[]> {
   }).catch(() => FALLBACK_NEWS);
 }
 
+/** Nepal keeps curated RSS; other countries use Google News search RSS. */
+export async function fetchCountryNews(
+  countryCode: string,
+  countryName: string,
+): Promise<NewsItem[]> {
+  if (countryCode.toLowerCase() === "np") return fetchNepalNews();
+
+  const q = encodeURIComponent(countryName);
+  const url = `https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`;
+  return cachedFetch(`news-${countryCode.toLowerCase()}`, 5 * 60 * 1000, async () => {
+    const items = await parseFeed("Google News", url);
+    return items.slice(0, 40);
+  }).catch(() => [
+    {
+      id: `fallback-${countryCode}`,
+      title: `Headlines for ${countryName} are temporarily unavailable`,
+      link: `https://news.google.com/search?q=${q}`,
+      source: "System",
+      publishedAt: new Date().toISOString(),
+      summary: "Live news will populate when upstream feeds respond.",
+    },
+  ]);
+}
+
 export function listNewsFeedSources(): string[] {
   return FEEDS.map((f) => f.source);
 }

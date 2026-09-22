@@ -1,9 +1,9 @@
-import type { DomainMeta } from "./types";
+import type { DomainId, DomainMeta } from "./types";
+import { countryPath } from "./countries";
 
-export const DOMAINS: DomainMeta[] = [
+const DOMAIN_DEFS: Omit<DomainMeta, "href">[] = [
   {
     id: "people",
-    href: "/people",
     title: "People & Society",
     titleNp: "जनसंख्या",
     blurb: "Population, vitals, literacy, HDI",
@@ -11,23 +11,20 @@ export const DOMAINS: DomainMeta[] = [
   },
   {
     id: "economy",
-    href: "/economy",
     title: "Economy & Markets",
     titleNp: "अर्थतन्त्र",
-    blurb: "GDP, FX, remittance, NEPSE, CPI",
+    blurb: "GDP, FX, remittance, markets, CPI",
     accent: "#F4D35E",
   },
   {
     id: "government",
-    href: "/government",
     title: "Government & Finance",
     titleNp: "सरकार",
-    blurb: "Cabinet roster, budget, revenue, fiscal transfers",
+    blurb: "Leadership, budget, fiscal transfers",
     accent: "#E8A87C",
   },
   {
     id: "health",
-    href: "/health",
     title: "Health",
     titleNp: "स्वास्थ्य",
     blurb: "Facilities, mortality, immunization",
@@ -35,7 +32,6 @@ export const DOMAINS: DomainMeta[] = [
   },
   {
     id: "education",
-    href: "/education",
     title: "Education",
     titleNp: "शिक्षा",
     blurb: "Schools, enrollment, outcomes",
@@ -43,31 +39,27 @@ export const DOMAINS: DomainMeta[] = [
   },
   {
     id: "energy",
-    href: "/energy",
     title: "Energy & Infrastructure",
     titleNp: "ऊर्जा",
-    blurb: "Hydro capacity, electrification, fuel",
+    blurb: "Power capacity, electrification, fuel",
     accent: "#FF9F1C",
   },
   {
     id: "environment",
-    href: "/environment",
     title: "Environment & Climate",
     titleNp: "वातावरण",
-    blurb: "AQI, monsoon, forests, rivers",
+    blurb: "AQI, climate, forests, rivers",
     accent: "#2EC4B6",
   },
   {
     id: "disasters",
-    href: "/disasters",
     title: "Disasters & Safety",
     titleNp: "प्रकोप",
-    blurb: "Floods, landslides, fire, quakes, river alerts",
+    blurb: "Earthquakes, floods, and hazard feeds",
     accent: "#FF6B6B",
   },
   {
     id: "tourism",
-    href: "/tourism",
     title: "Tourism & Culture",
     titleNp: "पर्यटन",
     blurb: "Arrivals, hotels, travel income",
@@ -75,7 +67,6 @@ export const DOMAINS: DomainMeta[] = [
   },
   {
     id: "digital",
-    href: "/digital",
     title: "Connectivity & Digital",
     titleNp: "डिजिटल",
     blurb: "Mobile, broadband, bandwidth",
@@ -83,45 +74,60 @@ export const DOMAINS: DomainMeta[] = [
   },
   {
     id: "transport",
-    href: "/transport",
     title: "Transport & Mobility",
     titleNp: "यातायात",
-    blurb: "Vehicles, EV share, aviation",
+    blurb: "Vehicles, aviation, mobility",
     accent: "#90BE6D",
   },
   {
     id: "agriculture",
-    href: "/agriculture",
     title: "Agriculture & Food",
     titleNp: "कृषि",
-    blurb: "Cereals, livestock, kitchen prices",
+    blurb: "Cereals, livestock, food prices",
     accent: "#B5E48C",
   },
   {
     id: "migration",
-    href: "/migration",
     title: "Labor & Migration",
     titleNp: "वैदेशिक रोजगार",
-    blurb: "Outflows, destinations, remittance link",
+    blurb: "Outflows, destinations, remittance",
     accent: "#F72585",
   },
   {
     id: "places",
-    href: "/places",
     title: "Places",
     titleNp: "स्थानहरू",
-    blurb: "Map layers and district drill-down",
+    blurb: "Interactive national map",
     accent: "#A0C4FF",
   },
   {
     id: "news",
-    href: "/news",
     title: "News & Calendar",
     titleNp: "समाचार",
-    blurb: "Local headlines and release calendar",
+    blurb: "Headlines and release calendar",
     accent: "#FFB703",
   },
 ];
+
+/** Absolute domain list (hrefs default to Nepal for legacy callers). */
+export const DOMAINS: DomainMeta[] = DOMAIN_DEFS.map((d) => ({
+  ...d,
+  href: countryPath("np", d.id),
+}));
+
+export function domainsFor(countryCode: string): DomainMeta[] {
+  const isNepal = countryCode.toLowerCase() === "np";
+  return DOMAIN_DEFS.map((d) => ({
+    ...d,
+    // Keep Nepali subtitles for Nepal; elsewhere use the English blurb.
+    titleNp: isNepal ? d.titleNp : d.blurb,
+    href: countryPath(countryCode, d.id),
+  }));
+}
+
+export function isDomainId(value: string): value is DomainId {
+  return DOMAIN_DEFS.some((d) => d.id === value);
+}
 
 export const PROVINCE_NAMES: Record<number, { en: string; np: string }> = {
   1: { en: "Koshi", np: "कोशी" },

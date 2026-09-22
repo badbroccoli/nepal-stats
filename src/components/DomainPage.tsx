@@ -1,18 +1,20 @@
 import { MetricGrid } from "@/components/KpiCard";
 import { SectionHeader, SourceStamp } from "@/components/SectionHeader";
-import { DOMAINS } from "@/lib/domains";
+import { domainsFor } from "@/lib/domains";
 import { getDomainMetrics } from "@/lib/connectors/pulse";
 import type { DomainId } from "@/lib/types";
 import type { ReactNode } from "react";
 
 export function DomainPage({
   id,
+  countryCode = "np",
   children,
 }: {
   id: DomainId;
+  countryCode?: string;
   children?: ReactNode;
 }) {
-  const meta = DOMAINS.find((d) => d.id === id)!;
+  const meta = domainsFor(countryCode).find((d) => d.id === id)!;
   const metrics = getDomainMetrics(id);
 
   return (
