@@ -1,22 +1,36 @@
-# Nepal Real-Time Statistics Dashboard
+# NepalStats
 
-Planning for a dark-themed, map-centric **one-stop hub for everything Nepal**: people, economy, government finance, health, education, energy, environment, disasters, tourism, digital, transport, agriculture, migration, places, and news.
+One-stop dark dashboard for Nepal: national pulse, interactive district map, live FX / earthquakes / news, and curated metrics across people, economy, government, health, education, energy, environment, tourism, digital, transport, agriculture, and migration.
 
-## Documents
+## Quick start
 
-| Doc | Description |
-|-----|-------------|
-| [docs/TECHNICAL_PLAN.md](docs/TECHNICAL_PLAN.md) | Architecture, stack, ingestion, phased delivery |
-| [docs/METRICS_CATALOG.md](docs/METRICS_CATALOG.md) | Expanded metric inventory (Worldometers / Trading Economics–style) |
-| [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) | Living register of APIs, cadences, and compliance notes |
+```bash
+cd web
+npm install
+npm run dev
+```
 
-## Recommended stack (summary)
+Open [http://localhost:3000](http://localhost:3000).
 
-- **Frontend:** Next.js + TypeScript, MapLibre GL, Tailwind (dark theme)
-- **Backend:** NestJS/Fastify, BullMQ workers, Socket.IO
-- **Data:** PostgreSQL + PostGIS, Redis
-- **Sources:** NSO, National Data Portal, NRB, MoF, BIPAD, USGS, NTA, NTB, WAQI, Nepali RSS, and more
+Optional: set `WAQI_TOKEN` for live Kathmandu AQI.
 
-## Status
+## Live connectors
 
-Planning in progress. Implementation not started — see phases in the technical plan.
+| Feed | Endpoint |
+|------|----------|
+| Pulse aggregate | `GET /api/pulse` |
+| News RSS | `GET /api/news` |
+| USGS quakes | `GET /api/earthquakes` |
+| NRB forex | `GET /api/forex` |
+| Domain metrics | `GET /api/metrics/[domain]` |
+| District GeoJSON | `GET /api/geo/districts` |
+
+## Docs
+
+- [Technical plan](docs/TECHNICAL_PLAN.md)
+- [Metrics catalog](docs/METRICS_CATALOG.md)
+- [Data sources](docs/DATA_SOURCES.md)
+
+## Stack
+
+Next.js · MapLibre · Recharts · TypeScript · Tailwind

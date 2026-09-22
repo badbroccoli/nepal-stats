@@ -1,0 +1,34 @@
+"use client";
+
+import { timeAgo } from "@/lib/format";
+import type { NewsItem } from "@/lib/types";
+
+export function NewsRail({ items }: { items: NewsItem[] }) {
+  return (
+    <aside className="panel flex h-full min-h-[320px] flex-col rounded-sm">
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+        <h2 className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
+          Live Nepali news
+        </h2>
+        <span className="live-dot" />
+      </div>
+      <ul className="flex-1 space-y-0 overflow-y-auto">
+        {items.map((item) => (
+          <li
+            key={item.id}
+            className="border-b border-[var(--border)] px-4 py-3 transition hover:bg-[#161616]"
+          >
+            <a href={item.link} target="_blank" rel="noopener noreferrer">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                <span>{item.source}</span>
+                <span>·</span>
+                <span>{timeAgo(item.publishedAt)}</span>
+              </div>
+              <div className="mt-1 text-sm leading-snug">{item.title}</div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </aside>
+  );
+}
