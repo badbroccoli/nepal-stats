@@ -20,6 +20,7 @@ export function CountryPulseView({
   const [pop, ...rest] = pulse.metrics;
   const preferred = preferredPopulationSource(country.code);
   const activeConnectors = [
+    pulse.populationConnector,
     preferred,
     "worldbank",
     "usgs",

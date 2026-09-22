@@ -33,6 +33,11 @@ export async function DomainPage({
           if (s.includes("eurostat")) out.push("eurostat");
           if (s.includes("world bank")) out.push("worldbank");
           if (s.includes("census")) out.push("census_us");
+          if (s.includes("statistics canada") || s.includes("statcan"))
+            out.push("statcan");
+          if (s.includes("australian bureau") || s.includes("abs"))
+            out.push("abs");
+          if (s.includes("ibge")) out.push("ibge");
           if (s.includes("usgs")) out.push("usgs");
           return out;
         }),

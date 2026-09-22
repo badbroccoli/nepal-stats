@@ -42,13 +42,18 @@ Examples: `/us`, `/fr/government`, `/jp/economy`, `/br/places`.
 
 ### Official source registry
 
-Every country has a curated list of **federal / national** statistical offices, central banks, open-data portals, and (where known) census / health / hazard agencies in `src/data/country-sources.json`.
+Every country has a curated list of **federal / national**, **state / provincial**, and **local** statistical offices, central banks, open-data portals, and (where known) census / health / hazard agencies in `src/data/country-sources.json`.
 
-- Pulse and domain pages show an **Official data sources** panel with deep links.
-- Population prefers Eurostat for EU/EEA (and similar) geos; optional `CENSUS_API_KEY` enables live U.S. Census ACS totals.
-- `GET /api/sources?country=fr` returns the registry; add `&probe=1` to HEAD/GET-check agency URLs.
+- Pulse and domain pages show an **Official data sources** panel grouped by tier, with live portal probes (up/down) and a population accuracy cross-check vs World Bank.
+- Population prefers national APIs when wired and within ~12% of World Bank:
+  - **Eurostat** for EU/EEA (+ similar geos)
+  - **Statistics Canada** WDS (Canada)
+  - **ABS** ERP SDMX (Australia)
+  - **IBGE** agregados (Brazil)
+  - Optional `CENSUS_API_KEY` for live U.S. Census ACS totals
+- `GET /api/sources?country=fr&probe=1` returns the registry, HEAD/GET portal checks, and the accuracy probe (`&accuracy=1` alone also works).
 
-World Bank remains the cross-country baseline because it is itself compiled from national statistical systems when a machine-readable national API is not yet wired.
+World Bank remains the cross-country baseline when a national API is unavailable or fails the accuracy check.
 
 ### API
 

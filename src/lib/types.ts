@@ -127,6 +127,8 @@ export interface PulsePayload {
   generatedAt: string;
   populationEstimate: number;
   populationAsOf: string;
+  /** Connector id that supplied the headline population figure */
+  populationConnector?: string;
   metrics: Metric[];
   forex: ForexRate[];
   quakes: QuakeEvent[];

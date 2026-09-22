@@ -189,6 +189,7 @@ export async function buildPulse(countryCode = "us"): Promise<PulsePayload> {
     generatedAt: now,
     populationEstimate,
     populationAsOf: officialPop?.asOf ?? now,
+    populationConnector: officialPop?.connector,
     metrics: [...base, ...extras].slice(0, 8),
     forex,
     quakes: quakes.slice(0, 12),
