@@ -1,15 +1,30 @@
-import { DomainPage } from "@/components/DomainPage";
+import { MetricGrid } from "@/components/KpiCard";
+import { SectionHeader, SourceStamp } from "@/components/SectionHeader";
 import { NepalMap } from "@/components/NepalMap";
 import { fetchNepalEarthquakes } from "@/lib/connectors/usgs";
+import { getDomainMetrics } from "@/lib/connectors/pulse";
+import { DOMAINS } from "@/lib/domains";
 import { timeAgo } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default async function DisastersPage() {
   const quakes = await fetchNepalEarthquakes();
+  const meta = DOMAINS.find((d) => d.id === "disasters")!;
+  const metrics = getDomainMetrics("disasters").map((m) =>
+    m.key === "quakes_30d"
+      ? { ...m, value: quakes.length, asOf: new Date().toISOString() }
+      : m,
+  );
 
   return (
-    <DomainPage id="disasters">
+    <div>
+      <SectionHeader
+        title={meta.title}
+        titleNp={meta.titleNp}
+        blurb={meta.blurb}
+      />
+      <MetricGrid metrics={metrics} />
       <div className="mt-8 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
         <NepalMap quakes={quakes} height="480px" />
         <div className="panel rounded-sm p-4">
@@ -34,6 +49,7 @@ export default async function DisastersPage() {
           </ul>
         </div>
       </div>
-    </DomainPage>
+      <SourceStamp />
+    </div>
   );
 }
