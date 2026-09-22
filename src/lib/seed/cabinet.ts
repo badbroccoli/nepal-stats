@@ -6,12 +6,15 @@ export type CabinetMember = {
   bio: string;
   /** Prime minister vs cabinet minister */
   tier: "pm" | "minister";
+  /** Local portrait under /public/cabinet (Wikimedia Commons where available). */
+  photo?: string;
 };
 
 /**
  * Curated roster of the incumbent Council of Ministers.
  * Update when portfolios change; `asOf` is shown on the Government page.
  * Sources: Wikipedia “Balen Shah cabinet”, Radio Nepal, Kathmandu Post, Ratopati.
+ * Portraits: Wikimedia Commons (see public/cabinet/).
  */
 export const CABINET_AS_OF = "2026-09-10";
 
@@ -22,6 +25,7 @@ export const CABINET: CabinetMember[] = [
     role: "Prime Minister · Defence",
     party: "Rastriya Swatantra Party",
     tier: "pm",
+    photo: "/cabinet/balendra-shah.jpg",
     bio: "Structural engineer, rapper, and former Kathmandu mayor (2022–2026). Became Nepal’s 46th prime minister on 27 March 2026 after RSP’s landslide, and is among the world’s youngest serving leaders.",
   },
   {
@@ -29,6 +33,7 @@ export const CABINET: CabinetMember[] = [
     role: "Finance",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/swarnim-wagle.jpg",
     bio: "Development economist and RSP vice-chair; twice elected from Tanahun-1. Oversees the federal budget and macroeconomic policy.",
   },
   {
@@ -36,6 +41,7 @@ export const CABINET: CabinetMember[] = [
     role: "Home Affairs",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/sudan-gurung.jpg",
     bio: "Founder of Hami Nepal and a visible Gen Z–era organizer; elected from Gorkha-2. Briefly stepped aside in April 2026 and returned as home minister in June.",
   },
   {
@@ -43,6 +49,7 @@ export const CABINET: CabinetMember[] = [
     role: "Foreign Affairs",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/shishir-khanal.jpg",
     bio: "Heads RSP’s foreign-affairs work and represents Kathmandu-6. Focuses on diplomatic outreach and Nepal’s external relations.",
   },
   {
@@ -50,6 +57,7 @@ export const CABINET: CabinetMember[] = [
     role: "Energy, Water Resources & Irrigation",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/biraj-bhakta-shrestha.jpg",
     bio: "MP from Kathmandu-8. Leads hydropower, irrigation, and water-resource portfolios central to Nepal’s energy transition.",
   },
   {
@@ -64,6 +72,7 @@ export const CABINET: CabinetMember[] = [
     role: "Law, Justice & Parliamentary Affairs",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/sobita-gautam.jpg",
     bio: "Lawyer and MP from Chitwan-3. Known for legislative advocacy on justice reform and parliamentary process.",
   },
   {
@@ -71,6 +80,7 @@ export const CABINET: CabinetMember[] = [
     role: "Science, Technology & Innovation",
     party: "Independent",
     tier: "minister",
+    photo: "/cabinet/mahabir-pun.jpg",
     bio: "Educationist and Magasasay Award laureate known for rural wireless networking. Inducted in June 2026 to drive STI policy.",
   },
   {
@@ -78,6 +88,7 @@ export const CABINET: CabinetMember[] = [
     role: "Women, Children & Social Security",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/sita-badi.jpg",
     bio: "Proportional-representation MP and Dalit rights advocate. Portfolios cover women, children, gender minorities, and social security.",
   },
   {
@@ -85,6 +96,7 @@ export const CABINET: CabinetMember[] = [
     role: "Federal Affairs & General Administration",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/pratibha-rawal.jpg",
     bio: "Journalist-turned-politician and RSP co-spokesperson (PR). Also covers land management, cooperatives, and poverty alleviation.",
   },
   {
@@ -92,6 +104,7 @@ export const CABINET: CabinetMember[] = [
     role: "Health & Food Hygiene",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/nisha-mehta.jpg",
     bio: "Proportional-representation MP focused on public health delivery, food safety, and population services.",
   },
   {
@@ -99,6 +112,7 @@ export const CABINET: CabinetMember[] = [
     role: "Education & Sports",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/sasmit-pokharel.jpg",
     bio: "Young MP from Kathmandu-5. Leads school/higher education and youth sports agendas.",
   },
   {
@@ -106,6 +120,7 @@ export const CABINET: CabinetMember[] = [
     role: "Culture, Tourism & Civil Aviation",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/khadak-raj-paudel.jpg",
     bio: "Elected from Kaski-1 (Pokhara). Oversees tourism recovery, culture, and civil aviation.",
   },
   {
@@ -120,6 +135,7 @@ export const CABINET: CabinetMember[] = [
     role: "Agriculture, Forests & Environment",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/gita-chaudhary.jpg",
     bio: "Advocate elected under proportional representation. Combines agriculture, livestock, forests, and environment briefs.",
   },
   {
@@ -127,6 +143,7 @@ export const CABINET: CabinetMember[] = [
     role: "Youth, Labour & Employment",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/ramjee-yadav.jpg",
     bio: "Elected from Saptari-2; joined the cabinet in April 2026 after the labour portfolio was reshuffled.",
   },
   {
@@ -134,6 +151,7 @@ export const CABINET: CabinetMember[] = [
     role: "Industry, Commerce & Supplies",
     party: "Rastriya Swatantra Party",
     tier: "minister",
+    photo: "/cabinet/deepak-kumar-sah.jpg",
     bio: "Returned to cabinet in September 2026 for industry and supplies after an earlier short stint as labour minister.",
   },
 ];
