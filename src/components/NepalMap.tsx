@@ -8,6 +8,7 @@ import {
   NavigationControl,
   Popup,
   ScaleControl,
+  type StyleSpecification,
 } from "maplibre-gl";
 import { PROVINCE_NAMES } from "@/lib/domains";
 import { formatCompact, formatNumber, timeAgo } from "@/lib/format";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/geo";
 import { CENSUS_POPULATION_2021, DISTRICT_POPULATION } from "@/lib/seed/metrics";
 import type { DisasterIncident, QuakeEvent } from "@/lib/types";
+import type { Feature, FeatureCollection } from "geojson";
 
 type DistrictHover = {
   name: string;
@@ -180,6 +182,19 @@ export function NepalMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    const emptyStyle: StyleSpecification = {
+      version: 8,
+      name: "nepal-fallback",
+      sources: {},
+      layers: [
+        {
+          id: "background",
+          type: "background",
+          paint: { "background-color": "#070807" },
+        },
+      ],
+    };
+
     const map = new MapLibreMap({
       container: containerRef.current,
       style: "https://tiles.openfreemap.org/styles/dark",
@@ -210,15 +225,45 @@ export function NepalMap({
     popupRef.current = popup;
 
     let cancelled = false;
+    let styleReady = false;
+    let pendingApply: (() => void) | null = null;
+
+    const onStyleData = () => {
+      if (map.isStyleLoaded()) {
+        styleReady = true;
+        pendingApply?.();
+      }
+    };
+    map.on("styledata", onStyleData);
+    map.on("load", () => {
+      styleReady = true;
+      pendingApply?.();
+    });
+
+    map.on("error", (e) => {
+      const msg = e.error?.message ?? "";
+      // If the remote basemap fails, fall back so district layers can still mount.
+      if (
+        !cancelled &&
+        !styleReady &&
+        /ajax|fetch|network|style|tile|openfreemap/i.test(msg)
+      ) {
+        map.setStyle(emptyStyle);
+      }
+    });
+
+    const styleTimeout = window.setTimeout(() => {
+      if (cancelled || styleReady || map.getSource("districts")) return;
+      map.setStyle(emptyStyle);
+    }, 8000);
 
     async function loadDistricts() {
       try {
         const res = await fetch("/api/geo/districts");
         if (!res.ok) throw new Error(String(res.status));
-        const geo = (await res.json()) as GeoJSON.FeatureCollection;
-
-        const hqFeatures: GeoJSON.Feature[] = [];
-        const enriched: GeoJSON.FeatureCollection = {
+        const geo = (await res.json()) as FeatureCollection;
+        const hqFeatures: Feature[] = [];
+        const enriched: FeatureCollection = {
           type: "FeatureCollection",
           features: geo.features.map((f) => {
             const rawName = String(f.properties?.DISTRICT ?? "");
@@ -273,6 +318,8 @@ export function NepalMap({
         if (cancelled || !mapRef.current) return;
 
         const apply = () => {
+          if (cancelled || !mapRef.current) return;
+          if (!map.isStyleLoaded()) return;
           if (map.getSource("districts")) return;
 
           map.addSource("districts", {
@@ -460,16 +507,16 @@ export function NepalMap({
           setStatus("ready");
         };
 
-        if (map.isStyleLoaded()) apply();
-        else map.once("load", apply);
+        pendingApply = apply;
+        apply();
       } catch {
         if (!cancelled) setStatus("error");
       }
     }
 
-    map.on("load", () => {
-      void loadDistricts();
-    });
+    // Fetch districts immediately — do not wait for map `load` (WebGL/style
+    // stalls would otherwise leave the overlay spinning forever).
+    void loadDistricts();
 
     let hoveredId: string | number | undefined;
 
@@ -572,6 +619,7 @@ export function NepalMap({
 
     return () => {
       cancelled = true;
+      window.clearTimeout(styleTimeout);
       popup.remove();
       popupRef.current = null;
       map.remove();
@@ -584,7 +632,7 @@ export function NepalMap({
     if (!map || status !== "ready") return;
 
     const markers = toMarkers(incidents, quakes);
-    const data: GeoJSON.FeatureCollection = {
+    const data: FeatureCollection = {
       type: "FeatureCollection",
       features: markers.map((m) => ({
         type: "Feature",
