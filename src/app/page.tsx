@@ -51,15 +51,17 @@ export default async function HomePage() {
         ))}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        <div className="min-h-[520px]">
+      <section className="grid items-stretch gap-4 lg:grid-cols-[1.4fr_0.8fr]">
+        <div className="h-[520px] min-h-0">
           <NepalMap
             incidents={pulse.disasters}
             quakes={pulse.quakes}
             height="520px"
           />
         </div>
-        <NewsRail items={pulse.news} />
+        <div className="h-[520px] min-h-0">
+          <NewsRail items={pulse.news} />
+        </div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">

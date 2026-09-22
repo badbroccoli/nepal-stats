@@ -22,7 +22,7 @@ export const DOMAINS: DomainMeta[] = [
     href: "/government",
     title: "Government & Finance",
     titleNp: "सरकार",
-    blurb: "Budget, revenue, fiscal transfers",
+    blurb: "Cabinet roster, budget, revenue, fiscal transfers",
     accent: "#E8A87C",
   },
   {
