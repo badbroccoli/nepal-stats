@@ -33,6 +33,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        {/* Load outside the Tailwind/PostCSS pipeline — MapLibre's minified CSS
+            breaks @tailwindcss/postcss when imported via globals.css. */}
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body
         className={`${display.variable} ${body.variable} ${mono.variable} antialiased`}
       >
