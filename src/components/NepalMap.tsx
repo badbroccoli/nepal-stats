@@ -16,6 +16,11 @@ const NEPAL_BOUNDS: [[number, number], [number, number]] = [
   [88.5, 30.6],
 ];
 
+// MapLibre v6 loads its geometry worker from a separate module file. Under
+// Next.js the default URL resolves to a non-existent /_next chunk, so we point
+// it at the copies served from /public/maplibre (see scripts/copy-maplibre-worker.mjs).
+maplibregl.setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
+
 export function NepalMap({ earthquakes, selectedDistrict, onSelectDistrict }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -30,7 +35,6 @@ export function NepalMap({ earthquakes, selectedDistrict, onSelectDistrict }: Pr
       container: containerRef.current,
       style: {
         version: 8,
-        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
         sources: {},
         layers: [{ id: "bg", type: "background", paint: { "background-color": "#050505" } }],
       },
@@ -39,6 +43,8 @@ export function NepalMap({ earthquakes, selectedDistrict, onSelectDistrict }: Pr
       attributionControl: false,
     });
     mapRef.current = map;
+    const resizeObserver = new ResizeObserver(() => map.resize());
+    resizeObserver.observe(containerRef.current);
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     map.addControl(
       new maplibregl.AttributionControl({
@@ -64,13 +70,13 @@ export function NepalMap({ earthquakes, selectedDistrict, onSelectDistrict }: Pr
               "#3ddc97",
               ["boolean", ["feature-state", "hover"], false],
               "#1f7a5a",
-              "#15161a",
+              "#1a2430",
             ],
             "fill-opacity": [
               "case",
               ["boolean", ["feature-state", "selected"], false],
-              0.55,
-              0.85,
+              0.6,
+              0.9,
             ],
           },
         });
@@ -78,23 +84,9 @@ export function NepalMap({ earthquakes, selectedDistrict, onSelectDistrict }: Pr
           id: "district-line",
           type: "line",
           source: "districts",
-          paint: { "line-color": "#2a2b30", "line-width": 0.6 },
+          paint: { "line-color": "#3a4657", "line-width": 0.8 },
         });
-        map.addLayer({
-          id: "district-label",
-          type: "symbol",
-          source: "districts",
-          layout: {
-            "text-field": ["get", "district"],
-            "text-size": 10,
-            "text-font": ["Open Sans Regular"],
-          },
-          paint: {
-            "text-color": "#7a7d85",
-            "text-halo-color": "#050505",
-            "text-halo-width": 1,
-          },
-        });
+        let districtPopup: maplibregl.Popup | null = null;
 
         map.on("mousemove", "district-fill", (e: MapLayerMouseEvent) => {
           if (!e.features?.length) return;
@@ -107,6 +99,17 @@ export function NepalMap({ earthquakes, selectedDistrict, onSelectDistrict }: Pr
             map.setFeatureState({ source: "districts", id: hoveredId.current }, { hover: true });
           }
           map.getCanvas().style.cursor = "pointer";
+          const name = f.properties?.district as string | undefined;
+          if (name) {
+            if (!districtPopup) {
+              districtPopup = new maplibregl.Popup({
+                closeButton: false,
+                closeOnClick: false,
+                className: "district-hover",
+              });
+            }
+            districtPopup.setLngLat(e.lngLat).setText(name).addTo(map);
+          }
         });
         map.on("mouseleave", "district-fill", () => {
           if (hoveredId.current !== null) {
@@ -114,6 +117,7 @@ export function NepalMap({ earthquakes, selectedDistrict, onSelectDistrict }: Pr
           }
           hoveredId.current = null;
           map.getCanvas().style.cursor = "";
+          districtPopup?.remove();
         });
         map.on("click", "district-fill", (e: MapLayerMouseEvent) => {
           const f = e.features?.[0];
@@ -123,12 +127,17 @@ export function NepalMap({ earthquakes, selectedDistrict, onSelectDistrict }: Pr
 
         readyRef.current = true;
         updateQuakes();
+        // The map can initialise before the flex/grid layout settles its final
+        // size; nudge it so the WebGL canvas matches the container and repaints.
+        map.resize();
+        map.fitBounds(NEPAL_BOUNDS, { padding: 24, duration: 0 });
       } catch {
         // Map still renders the dark background even if geo load fails.
       }
     });
 
     return () => {
+      resizeObserver.disconnect();
       map.remove();
       mapRef.current = null;
       readyRef.current = false;

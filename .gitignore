@@ -27,3 +27,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated maplibre worker assets (copied from node_modules at build/dev)
+/public/maplibre/
