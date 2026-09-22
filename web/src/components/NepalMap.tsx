@@ -25,12 +25,26 @@ export function NepalMap({
 }) {
   const [geo, setGeo] = useState<GeoJSON.FeatureCollection | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/geo/districts")
-      .then((r) => r.json())
-      .then((data) => setGeo(data))
-      .catch(() => setGeo(null));
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setGeo(data);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const enriched = useMemo(() => {
@@ -73,7 +87,13 @@ export function NepalMap({
 
   return (
     <div className="panel relative overflow-hidden rounded-sm" style={{ height }}>
+      {status !== "ready" && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#070807]/80 text-xs uppercase tracking-wider text-[var(--muted)]">
+          {status === "loading" ? "Loading Nepal districts…" : "Map data failed to load"}
+        </div>
+      )}
       <Map
+        key={status === "ready" ? "map-ready" : "map-boot"}
         initialViewState={{
           longitude: 84.1,
           latitude: 28.2,
