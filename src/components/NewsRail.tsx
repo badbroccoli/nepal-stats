@@ -7,7 +7,7 @@ export function NewsRail({ items }: { items: NewsItem[] }) {
   const sources = [...new Set(items.map((i) => i.source))];
 
   return (
-    <aside className="panel flex h-full min-h-[320px] flex-col rounded-sm">
+    <aside className="panel flex h-full min-h-0 flex-col overflow-hidden rounded-sm">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <div>
           <h2 className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
@@ -21,7 +21,7 @@ export function NewsRail({ items }: { items: NewsItem[] }) {
         </div>
         <span className="live-dot" />
       </div>
-      <ul className="flex-1 space-y-0 overflow-y-auto">
+      <ul className="min-h-0 flex-1 space-y-0 overflow-y-auto">
         {items.map((item) => (
           <li
             key={item.id}
