@@ -22,6 +22,7 @@ import {
 import { CENSUS_POPULATION_2021, DISTRICT_POPULATION } from "@/lib/seed/metrics";
 import type { DisasterIncident, QuakeEvent } from "@/lib/types";
 import type { Feature, FeatureCollection } from "geojson";
+import districtsGeo from "@/data/nepal-districts.json";
 
 type DistrictHover = {
   name: string;
@@ -154,14 +155,17 @@ function buildHazardPopupHtml(h: HazardSelection): string {
   `;
 }
 
-export function NepalMap({
+export function MapLibreNepalMap({
   quakes = [],
   incidents = [],
   height = "100%",
+  onUnavailable,
 }: {
   quakes?: QuakeEvent[];
   incidents?: DisasterIncident[];
   height?: string;
+  /** Called when WebGL/basemap cannot paint — parent should fall back to SVG. */
+  onUnavailable?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -197,15 +201,20 @@ export function NepalMap({
 
     const map = new MapLibreMap({
       container: containerRef.current,
-      style: "https://tiles.openfreemap.org/styles/dark",
+      // Liberty = readable streets/places (closer to Google/Apple). Dark chrome
+      // stays on the dashboard; district fill overlays the basemap.
+      style: "https://tiles.openfreemap.org/styles/liberty",
       center: [84.1, 28.2],
       zoom: 6.35,
       minZoom: 5,
-      maxZoom: 12,
+      maxZoom: 16,
       maxBounds: [
         [78.5, 25.5],
         [90.0, 31.8],
       ],
+      // Needed to sample the canvas if we suspect a blank WebGL surface.
+      preserveDrawingBuffer: true,
+      failIfMajorPerformanceCaveat: false,
     });
 
     map.addControl(new NavigationControl({ showCompass: true }), "top-right");
@@ -254,18 +263,28 @@ export function NepalMap({
       if (
         !cancelled &&
         !styleReady &&
-        /ajax|fetch|network|style|tile|openfreemap/i.test(msg)
+        /ajax|fetch|network|style|tile|openfreemap|webgl/i.test(msg)
       ) {
         map.setStyle(emptyStyle);
+        onUnavailable?.();
       }
     });
 
     const styleTimeout = window.setTimeout(() => {
       if (cancelled || styleReady || map.getSource("districts")) return;
       map.setStyle(emptyStyle);
+      onUnavailable?.();
     }, 8000);
 
     async function fetchDistrictGeo(): Promise<FeatureCollection> {
+      // Bundled geometry first — no network required for districts.
+      if (
+        districtsGeo &&
+        typeof districtsGeo === "object" &&
+        "features" in districtsGeo
+      ) {
+        return districtsGeo as FeatureCollection;
+      }
       try {
         const res = await fetch("/geo/nepal-districts.geojson");
         if (res.ok) return (await res.json()) as FeatureCollection;
@@ -396,8 +415,28 @@ export function NepalMap({
                 "fill-opacity": [
                   "case",
                   ["boolean", ["feature-state", "hover"], false],
-                  0.72,
-                  0.5,
+                  [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    5.5,
+                    0.72,
+                    11,
+                    0.45,
+                    14,
+                    0.22,
+                  ],
+                  [
+                    "interpolate",
+                    ["linear"],
+                    ["zoom"],
+                    5.5,
+                    0.48,
+                    11,
+                    0.26,
+                    14,
+                    0.08,
+                  ],
                 ],
               },
             },
@@ -635,6 +674,36 @@ export function NepalMap({
       }
     });
 
+    // After first idle paint, sample the canvas. If it's still essentially
+    // black (common WebGL software-renderer failure), ask parent for SVG.
+    const blankCheck = () => {
+      if (cancelled) return;
+      try {
+        const canvas = map.getCanvas();
+        if (canvas.width < 8 || canvas.height < 8) {
+          onUnavailable?.();
+          return;
+        }
+        const probe = document.createElement("canvas");
+        probe.width = 64;
+        probe.height = 64;
+        const ctx = probe.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(canvas, 0, 0, 64, 64);
+        const { data } = ctx.getImageData(0, 0, 64, 64);
+        let lit = 0;
+        for (let i = 0; i < data.length; i += 16) {
+          if (data[i]! > 28 || data[i + 1]! > 28 || data[i + 2]! > 28) lit += 1;
+        }
+        if (lit < 8) onUnavailable?.();
+      } catch {
+        // ignore sampling failures
+      }
+    };
+    map.once("idle", () => {
+      window.setTimeout(blankCheck, 600);
+    });
+
     return () => {
       cancelled = true;
       window.clearTimeout(styleTimeout);
@@ -644,6 +713,8 @@ export function NepalMap({
       map.remove();
       mapRef.current = null;
     };
+    // onUnavailable is stable from parent via useCallback; omit to avoid remounting the map.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -785,8 +856,8 @@ export function NepalMap({
 
   const legend =
     incidents.length > 0
-      ? "Population · multi-hazard markers"
-      : "Population · earthquake markers";
+      ? "Streets · population · multi-hazard markers"
+      : "Streets · population · earthquake markers";
 
   return (
     <div className="panel relative overflow-hidden rounded-sm" style={{ height }}>
