@@ -174,6 +174,7 @@ export function CountryPulseView({
       </section>
 
       <OfficialSourcesPanel
+        key={country.code}
         countryCode={country.code}
         countryName={country.name}
         activeConnectors={activeConnectors}

@@ -55,6 +55,7 @@ export async function DomainPage({
       {children}
       {country && (
         <OfficialSourcesPanel
+          key={country.code}
           countryCode={country.code}
           countryName={country.name}
           activeConnectors={activeConnectors}

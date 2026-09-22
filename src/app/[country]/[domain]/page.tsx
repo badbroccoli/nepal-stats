@@ -5,10 +5,7 @@ import { DomainPage } from "@/components/DomainPage";
 import { MetricGrid } from "@/components/KpiCard";
 import { NewsRail } from "@/components/NewsRail";
 import { SectionHeader, SourceStamp } from "@/components/SectionHeader";
-import {
-  getCountryDomainMetrics,
-  getDomainCharts,
-} from "@/lib/connectors/domainMetrics";
+import { getDomainCharts } from "@/lib/connectors/domainMetrics";
 import { fetchCountryGovernment } from "@/lib/connectors/government";
 import { fetchCountryNews } from "@/lib/connectors/news";
 import { fetchEarthquakesInBBox } from "@/lib/connectors/usgs";

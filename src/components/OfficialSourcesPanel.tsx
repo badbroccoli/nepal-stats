@@ -48,6 +48,10 @@ type AccuracyPayload = {
   } | null;
 };
 
+type ProbeResult =
+  | { status: "ok"; probes: ProbeRow[]; accuracy: AccuracyPayload | null }
+  | { status: "error" };
+
 export function OfficialSourcesPanel({
   countryCode,
   countryName,
@@ -59,15 +63,10 @@ export function OfficialSourcesPanel({
   activeConnectors?: string[];
 }) {
   const agencies = listOfficialAgencies(countryCode);
-  const [probes, setProbes] = useState<ProbeRow[] | null>(null);
-  const [accuracy, setAccuracy] = useState<AccuracyPayload | null>(null);
-  const [probeState, setProbeState] = useState<"idle" | "loading" | "done" | "error">(
-    "idle",
-  );
+  const [result, setResult] = useState<ProbeResult | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setProbeState("loading");
     fetch(`/api/sources?country=${encodeURIComponent(countryCode)}&probe=1`)
       .then(async (res) => {
         if (!res.ok) throw new Error("probe failed");
@@ -78,12 +77,14 @@ export function OfficialSourcesPanel({
       })
       .then((json) => {
         if (cancelled) return;
-        setProbes(json.probes ?? []);
-        setAccuracy(json.accuracy ?? null);
-        setProbeState("done");
+        setResult({
+          status: "ok",
+          probes: json.probes ?? [],
+          accuracy: json.accuracy ?? null,
+        });
       })
       .catch(() => {
-        if (!cancelled) setProbeState("error");
+        if (!cancelled) setResult({ status: "error" });
       });
     return () => {
       cancelled = true;
@@ -93,6 +94,8 @@ export function OfficialSourcesPanel({
   if (!agencies.length) return null;
 
   const active = new Set(activeConnectors);
+  const probes = result?.status === "ok" ? result.probes : null;
+  const accuracy = result?.status === "ok" ? result.accuracy : null;
   const probeByUrl = new Map((probes ?? []).map((p) => [p.url, p]));
 
   const tiers: Array<AgencyRef["tier"]> = [
@@ -120,13 +123,13 @@ export function OfficialSourcesPanel({
           </p>
         </div>
         <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
-          {probeState === "loading" && "Probing portals…"}
-          {probeState === "done" && probes && (
+          {result == null && "Probing portals…"}
+          {result?.status === "ok" && probes && (
             <>
               {probes.filter((p) => p.ok).length}/{probes.length} reachable
             </>
           )}
-          {probeState === "error" && "Probe unavailable"}
+          {result?.status === "error" && "Probe unavailable"}
         </div>
       </div>
 
