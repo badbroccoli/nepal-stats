@@ -125,7 +125,7 @@ export async function buildPulse(): Promise<PulsePayload> {
     ),
     quakes: quakes.slice(0, 12),
     disasters: mergedDisasters,
-    news: news.slice(0, 15),
+    news: news.slice(0, 24),
     domains: DOMAINS,
   };
 }

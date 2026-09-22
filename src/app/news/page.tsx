@@ -13,7 +13,7 @@ export default async function NewsPage() {
       <SectionHeader
         title="News & Calendar"
         titleNp="समाचार"
-        blurb="Aggregated headlines from major Nepali outlets (titles + links only) plus an economic/holiday calendar."
+        blurb="Aggregated headlines from a wide set of Nepali and Nepal-focused outlets (titles + links only), plus an economic/holiday calendar."
       />
       <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <NewsRail items={news} />

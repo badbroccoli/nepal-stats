@@ -2,19 +2,36 @@ import { XMLParser } from "fast-xml-parser";
 import type { NewsItem } from "../types";
 import { cachedFetch } from "./cache";
 
+/** Live RSS feeds that respond reliably from this environment. */
 const FEEDS: { source: string; url: string }[] = [
   { source: "OnlineKhabar", url: "https://www.onlinekhabar.com/feed" },
+  { source: "OnlineKhabar EN", url: "https://english.onlinekhabar.com/feed" },
   {
     source: "Nagarik",
     url: "https://nagariknews.nagariknetwork.com/feed",
   },
-  {
-    source: "Republica",
-    url: "https://myrepublica.nagariknetwork.com/feed",
-  },
   { source: "Setopati", url: "https://www.setopati.com/feed" },
   { source: "Ratopati", url: "https://www.ratopati.com/feed" },
+  { source: "Kathmandu Post", url: "https://kathmandupost.com/rss" },
+  {
+    source: "Himalayan Times",
+    url: "https://thehimalayantimes.com/rssFeed/24",
+  },
+  { source: "Nepali Times", url: "https://www.nepalitimes.com/feed" },
+  {
+    source: "Annapurna Express",
+    url: "https://theannapurnaexpress.com/rss",
+  },
+  { source: "Annapurna Post", url: "https://annapurnapost.com/rss" },
+  { source: "BBC Nepali", url: "https://feeds.bbci.co.uk/nepali/rss.xml" },
+  { source: "Khabarhub", url: "https://khabarhub.com/feed" },
+  { source: "Bizmandu", url: "https://bizmandu.com/feed" },
+  { source: "Clickmandu", url: "https://clickmandu.com/feed" },
+  { source: "ICIMOD", url: "https://www.icimod.org/feed" },
 ];
+
+const PER_SOURCE = 5;
+const MAX_ITEMS = 60;
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -32,8 +49,9 @@ async function parseFeed(
 ): Promise<NewsItem[]> {
   const res = await fetch(url, {
     headers: {
-      "User-Agent": "NepalStatsDashboard/1.0 (+https://github.com/badbroccoli/nepal-stats)",
-      Accept: "application/rss+xml, application/xml, text/xml",
+      "User-Agent":
+        "NepalStatsDashboard/1.0 (+https://github.com/badbroccoli/nepal-stats)",
+      Accept: "application/rss+xml, application/xml, text/xml, */*",
     },
     signal: AbortSignal.timeout(8000),
   });
@@ -58,15 +76,62 @@ async function parseFeed(
       typeof item.description === "string"
         ? item.description.replace(/<[^>]+>/g, "").slice(0, 180)
         : undefined;
+    const publishedAt = new Date(published);
     return {
       id: `${source}-${idx}-${link}`.slice(0, 180),
-      title: title.trim(),
+      title: String(title).trim(),
       link: String(link),
       source,
-      publishedAt: new Date(published).toISOString(),
+      publishedAt: Number.isNaN(publishedAt.getTime())
+        ? new Date().toISOString()
+        : publishedAt.toISOString(),
       summary,
     } satisfies NewsItem;
   });
+}
+
+/** Prefer source diversity, then recency — avoids a single outlet dominating. */
+function diversify(items: NewsItem[]): NewsItem[] {
+  const bySource = new Map<string, NewsItem[]>();
+  for (const item of items) {
+    const list = bySource.get(item.source) ?? [];
+    list.push(item);
+    bySource.set(item.source, list);
+  }
+  for (const list of bySource.values()) {
+    list.sort(
+      (a, b) =>
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
+  }
+
+  const picked: NewsItem[] = [];
+  const seen = new Set<string>();
+  const sources = [...bySource.keys()];
+
+  for (let round = 0; round < PER_SOURCE; round++) {
+    for (const source of sources) {
+      const item = bySource.get(source)?.[round];
+      if (!item) continue;
+      const key = item.link || item.title.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      picked.push(item);
+      if (picked.length >= MAX_ITEMS) return picked;
+    }
+  }
+
+  const rest = items
+    .filter((i) => !seen.has(i.link || i.title.toLowerCase()))
+    .sort(
+      (a, b) =>
+        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
+    );
+  for (const item of rest) {
+    picked.push(item);
+    if (picked.length >= MAX_ITEMS) break;
+  }
+  return picked;
 }
 
 export async function fetchNepalNews(): Promise<NewsItem[]> {
@@ -77,20 +142,12 @@ export async function fetchNepalNews(): Promise<NewsItem[]> {
     const items = batches.flatMap((b) =>
       b.status === "fulfilled" ? b.value : [],
     );
-    const seen = new Set<string>();
-    const deduped: NewsItem[] = [];
-    for (const item of items) {
-      const key = item.link || item.title.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      deduped.push(item);
-    }
-    deduped.sort(
-      (a, b) =>
-        new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
-    );
-    return deduped.slice(0, 40);
+    return diversify(items);
   }).catch(() => FALLBACK_NEWS);
+}
+
+export function listNewsFeedSources(): string[] {
+  return FEEDS.map((f) => f.source);
 }
 
 const FALLBACK_NEWS: NewsItem[] = [
@@ -100,6 +157,7 @@ const FALLBACK_NEWS: NewsItem[] = [
     link: "https://www.onlinekhabar.com/",
     source: "System",
     publishedAt: new Date().toISOString(),
-    summary: "Live RSS aggregation will populate this rail when upstream feeds respond.",
+    summary:
+      "Live RSS aggregation will populate this rail when upstream feeds respond.",
   },
 ];

@@ -4,12 +4,21 @@ import { timeAgo } from "@/lib/format";
 import type { NewsItem } from "@/lib/types";
 
 export function NewsRail({ items }: { items: NewsItem[] }) {
+  const sources = [...new Set(items.map((i) => i.source))];
+
   return (
     <aside className="panel flex h-full min-h-[320px] flex-col rounded-sm">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
-        <h2 className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-          Live Nepali news
-        </h2>
+        <div>
+          <h2 className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
+            Live Nepali news
+          </h2>
+          {sources.length > 0 && (
+            <div className="mt-0.5 text-[10px] text-[var(--muted)]">
+              {sources.length} sources · {items.length} headlines
+            </div>
+          )}
+        </div>
         <span className="live-dot" />
       </div>
       <ul className="flex-1 space-y-0 overflow-y-auto">
