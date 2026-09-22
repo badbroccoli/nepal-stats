@@ -1,12 +1,12 @@
 export function formatCompact(n: number): string {
-  return new Intl.NumberFormat("en-NP", {
+  return new Intl.NumberFormat("en", {
     notation: "compact",
     maximumFractionDigits: 2,
   }).format(n);
 }
 
 export function formatNumber(n: number, digits = 0): string {
-  return new Intl.NumberFormat("en-NP", {
+  return new Intl.NumberFormat("en", {
     maximumFractionDigits: digits,
   }).format(n);
 }
@@ -30,7 +30,9 @@ export function formatMetricValue(
       core = formatPercent(value);
       break;
     case "currency":
-      core = `NPR ${formatNumber(value, 2)}`;
+      core = unit
+        ? `${unit} ${formatNumber(value, 2)}`
+        : formatNumber(value, 2);
       break;
     case "raw":
       core = String(value);

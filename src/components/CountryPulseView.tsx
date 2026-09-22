@@ -23,6 +23,12 @@ export function CountryPulseView({
         <PopulationTicker
           estimate={pulse.populationEstimate}
           census={country.population ?? Math.round(pulse.populationEstimate)}
+          countryName={country.name}
+          sourceLabel={
+            country.code === "np"
+              ? `Interpolated from NSO NPHC 2021 baseline (${formatNumber(country.population ?? Math.round(pulse.populationEstimate))}) with a documented growth model — not an official live census counter.`
+              : `World Bank / registry baseline (${formatNumber(Math.round(pulse.populationEstimate))}) with a simple growth animation — not an official live census counter.`
+          }
         />
         <div className="panel flex flex-col justify-between rounded-sm p-5">
           <div>
@@ -79,7 +85,14 @@ export function CountryPulseView({
           />
         </div>
         <div className="h-[520px] min-h-0">
-          <NewsRail items={pulse.news} />
+          <NewsRail
+            items={pulse.news}
+            title={
+              country.code === "np"
+                ? "Live Nepali news"
+                : `Live ${country.name} news`
+            }
+          />
         </div>
       </section>
 

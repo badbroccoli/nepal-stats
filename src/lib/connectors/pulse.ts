@@ -261,5 +261,7 @@ export async function buildPulse(countryCode = "np"): Promise<PulsePayload> {
 }
 
 export function getDomainMetrics(domain: DomainId): Metric[] {
+  // Legacy sync helper — Nepal curated seed only.
+  // Prefer getCountryDomainMetrics(domain, country) for country-aware pages.
   return DOMAIN_METRICS[domain] ?? [];
 }
