@@ -189,10 +189,11 @@ export async function fetchRiverWatchSummary(): Promise<RiverWatchSummary> {
     let danger = 0;
     for (const s of stations) {
       const status = (s.status ?? "").toUpperCase();
-      if (status.includes("DANGER")) {
+      // Match ABOVE_* only — "BELOW WARNING LEVEL" must not count.
+      if (status.includes("ABOVE DANGER")) {
         danger += 1;
         elevated += 1;
-      } else if (status.includes("WARNING")) {
+      } else if (status.includes("ABOVE WARNING")) {
         elevated += 1;
       }
     }
