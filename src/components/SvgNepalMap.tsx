@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PROVINCE_NAMES } from "@/lib/domains";
 import { formatCompact, formatNumber, timeAgo } from "@/lib/format";
 import {
@@ -13,6 +13,7 @@ import {
 import { CENSUS_POPULATION_2021, DISTRICT_POPULATION } from "@/lib/seed/metrics";
 import type { DisasterIncident, QuakeEvent } from "@/lib/types";
 import type { Feature, FeatureCollection, Geometry, Position } from "geojson";
+import districtsGeo from "@/data/nepal-districts.json";
 
 type DistrictPath = {
   key: string;
@@ -118,36 +119,13 @@ export function SvgNepalMap({
   incidents?: DisasterIncident[];
   height?: string;
 }) {
-  const [geo, setGeo] = useState<FeatureCollection | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Bundled at build time — never depends on /geo fetch or MapLibre/WebGL.
+  const geo = districtsGeo as FeatureCollection;
   const [selected, setSelected] = useState<DistrictPath | null>(null);
   const [hover, setHover] = useState<DistrictPath | null>(null);
   const [selectedHazard, setSelectedHazard] = useState<HazardDot | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        let res = await fetch("/geo/nepal-districts.geojson");
-        if (!res.ok) res = await fetch("/api/geo/districts");
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = (await res.json()) as FeatureCollection;
-        if (!cancelled) setGeo(json);
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load");
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const bbox = useMemo(
-    () => (geo ? collectBBox(geo.features) : [80, 26, 89, 31]),
-    [geo],
-  );
+  const bbox = useMemo(() => collectBBox(geo.features), [geo]);
 
   const paths = useMemo(() => {
     if (!geo) return [] as DistrictPath[];
@@ -213,16 +191,6 @@ export function SvgNepalMap({
       className="panel relative overflow-hidden rounded-sm bg-[#070807]"
       style={{ height }}
     >
-      {!geo && !error && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center text-xs uppercase tracking-wider text-[var(--muted)]">
-          Loading Nepal districts…
-        </div>
-      )}
-      {error && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center px-4 text-center text-xs text-[var(--danger)]">
-          Map data failed to load ({error})
-        </div>
-      )}
       <svg
         viewBox="0 0 800 520"
         className="h-full w-full"

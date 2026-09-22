@@ -35,13 +35,6 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
-  // Ensure district GeoJSON is available to the serverless API route on Vercel.
-  outputFileTracingIncludes: {
-    "/api/geo/districts": [
-      "./src/data/nepal-districts.geojson",
-      "./public/geo/nepal-districts.geojson",
-    ],
-  },
   async headers() {
     return [
       {

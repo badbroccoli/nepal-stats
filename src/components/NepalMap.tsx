@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Primary map renderer. Uses an SVG choropleth so districts always paint,
- * including environments where MapLibre/WebGL canvas stays blank.
- * The MapLibre implementation remains in MapLibreNepalMap.tsx for later use.
+ * Primary map renderer. SVG choropleth with districts bundled at build time
+ * so the map paints immediately (no MapLibre/WebGL, no /geo fetch).
+ * MapLibreNepalMap.tsx remains available for a future basemap mode.
  */
 export { SvgNepalMap as NepalMap } from "./SvgNepalMap";

@@ -17,7 +17,7 @@ export default async function PlacesPage() {
       <SectionHeader
         title="Places"
         titleNp="स्थानहरू"
-        blurb="OpenFreeMap basemap with district choropleth, headquarters, and multi-hazard markers (floods, landslides, fire, quakes, and more). Hover or click districts and dots for population, density, and incident details."
+        blurb="District population choropleth with multi-hazard markers (floods, landslides, fire, quakes, and more). Hover or click districts and dots for population, density, and incident details."
       />
       <NepalMap incidents={incidents} quakes={quakes} height="640px" />
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
