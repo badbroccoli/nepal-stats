@@ -1,0 +1,10 @@
+{
+  "name": "Nepal Real-Time Dashboard",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "web",
+      "command": "npm run dev"
+    }
+  ]
+}

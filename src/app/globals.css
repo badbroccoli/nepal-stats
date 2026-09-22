@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-base-950 text-neutral-200 antialiased;
+}
+
+/* Keep the MapLibre canvas dark and unobtrusive */
+.maplibregl-map {
+  background: #050505;
+}
+
+.maplibregl-popup-content {
+  @apply bg-base-800 text-neutral-100 border border-line rounded-md shadow-lg text-xs;
+}
+.maplibregl-popup-tip {
+  border-top-color: #17181b !important;
+  border-bottom-color: #17181b !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
