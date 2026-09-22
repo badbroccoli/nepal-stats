@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
+import {
+  GeoJSONSource,
+  Map as MapLibreMap,
+  NavigationControl,
+} from "maplibre-gl";
 import { PROVINCE_NAMES } from "@/lib/domains";
 import { formatCompact } from "@/lib/format";
 import { DISTRICT_POPULATION } from "@/lib/seed/metrics";
@@ -45,14 +49,14 @@ export function NepalMap({
   height?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
   const [hover, setHover] = useState<HoverInfo | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = new maplibregl.Map({
+    const map = new MapLibreMap({
       container: containerRef.current,
       style: {
         version: 8,
@@ -70,7 +74,7 @@ export function NepalMap({
       zoom: 6.2,
     });
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
 
     let cancelled = false;
@@ -198,7 +202,7 @@ export function NepalMap({
       })),
     };
 
-    const source = map.getSource("hazards") as maplibregl.GeoJSONSource | undefined;
+    const source = map.getSource("hazards") as GeoJSONSource | undefined;
     if (source) {
       source.setData(data);
       return;
