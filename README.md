@@ -1,41 +1,72 @@
-# NepalStats
+# WorldStats
 
-One-stop dark dashboard for Nepal: national pulse, interactive district map, live FX / natural disasters / news, and curated metrics across people, economy, government, health, education, energy, environment, tourism, digital, transport, agriculture, and migration.
+One-stop dark dashboard for **every country**: national pulse, interactive map, live FX / earthquakes / news, head of state & cabinet with portraits, and World Bank metrics with trend charts across people, economy, government, health, education, energy, environment, tourism, digital, transport, agriculture, and migration.
+
+Home lists ~197 countries with flags. Click any nation to open a dynamically generated dashboard at `/[country]` — no per-country static pages.
 
 ## Quick start
 
 ```bash
 npm install
-cp .env.example .env.local   # optional
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Optional: set `WAQI_TOKEN` in `.env.local` for live Kathmandu AQI (server-only; never commit it).
-
 ## Deploy (Vercel)
 
-Import this GitHub repo. Leave **Root Directory** empty (app is at the repo root). Add `WAQI_TOKEN` if desired.
+Import this GitHub repo. Leave **Root Directory** empty (app is at the repo root).
+
+## Routes
+
+| Path | What you get |
+|------|----------------|
+| `/` | Country grid with flags, search, region filters |
+| `/[country]` | National pulse (KPIs, map, news, FX, hazards) |
+| `/[country]/[domain]` | Domain page (metrics + charts, or map / news / government) |
+| Legacy `/people`, `/economy`, … | Redirects to `/np/...` for old bookmarks |
+
+Examples: `/us`, `/fr/government`, `/jp/economy`, `/br/places`.
 
 ## Live connectors
 
-| Feed | Endpoint |
-|------|----------|
-| Pulse aggregate | `GET /api/pulse` |
-| News RSS | `GET /api/news` |
-| Natural disasters (BIPAD + USGS) | `GET /api/disasters` |
-| USGS quakes | `GET /api/earthquakes` |
-| NRB forex | `GET /api/forex` |
-| Domain metrics | `GET /api/metrics/[domain]` |
-| District GeoJSON | `GET /api/geo/districts` |
+| Feed | Source |
+|------|--------|
+| Population (preferred) | National NSO / Eurostat when available → else World Bank |
+| Domain indicators & charts | World Bank (+ national portals listed per country) |
+| Earthquakes | USGS (country bounding box) |
+| FX | Frankfurter / ECB |
+| News | Google News RSS |
+| Leadership & cabinet | Wikidata + Wikipedia |
+| Map basemap | OpenFreeMap / MapLibre |
 
-## Docs
+### Official source registry
 
-- [Technical plan](docs/TECHNICAL_PLAN.md)
-- [Metrics catalog](docs/METRICS_CATALOG.md)
-- [Data sources](docs/DATA_SOURCES.md)
-- [Security policy](SECURITY.md)
+Every country has a curated list of **federal / national**, **state / provincial**, and **local** statistical offices, central banks, open-data portals, and (where known) census / health / hazard agencies in `src/data/country-sources.json`.
+
+- Pulse and domain pages show an **Official data sources** panel grouped by tier, with live portal probes (up/down) and a population accuracy cross-check vs World Bank.
+- Population prefers national APIs when wired and within ~12% of World Bank:
+  - **Eurostat** for EU/EEA (+ similar geos)
+  - **Statistics Canada** WDS (Canada)
+  - **ABS** ERP SDMX (Australia)
+  - **IBGE** agregados (Brazil)
+  - Optional `CENSUS_API_KEY` for live U.S. Census ACS totals
+- `GET /api/sources?country=fr&probe=1` returns the registry, HEAD/GET portal checks, and the accuracy probe (`&accuracy=1` alone also works).
+
+World Bank remains the cross-country baseline when a national API is unavailable or fails the accuracy check.
+
+### API
+
+| Endpoint | Notes |
+|----------|--------|
+| `GET /api/pulse?country=us` | Aggregate pulse payload |
+| `GET /api/news?country=fr` | Headlines |
+| `GET /api/metrics/[domain]?country=jp` | Domain KPIs |
+| `GET /api/sources?country=de` | Official agency registry (`&probe=1` optional) |
+| `GET /api/earthquakes?country=us` | USGS helper |
+| `GET /api/forex?currency=EUR` | FX helper |
+
+Optional env: `CENSUS_API_KEY` for live U.S. Census ACS population.
 
 ## Stack
 
@@ -45,19 +76,10 @@ Next.js · MapLibre · Recharts · TypeScript · Tailwind
 
 This app is designed to run with a **public** codebase:
 
-- No secrets in git; optional `WAQI_TOKEN` is server-only via env
+- No secrets required for core feeds
 - Security headers and `poweredByHeader: false` in `next.config.ts`
 - Light in-process rate limiting on `/api/*` (`src/proxy.ts`)
 - Shared `Cache-Control` helpers on API routes (`src/lib/http.ts`)
 - CI lint/build, CodeQL, and Dependabot configs under `.github/`
 
-Report vulnerabilities privately — see [SECURITY.md](SECURITY.md) (`me@hemanta.com`).
-
-### Owner checklist (GitHub security settings)
-
-An org admin / owner should enable:
-
-1. **Secret scanning + push protection** — Settings → Code security
-2. **Dependabot alerts** — Settings → Code security
-3. **Branch protection** on `main` — require status checks (`Lint & build` / CodeQL), disallow force pushes
-4. Confirm `WAQI_TOKEN` (if used) exists only as a host / Actions secret
+Report vulnerabilities privately — see [SECURITY.md](SECURITY.md).

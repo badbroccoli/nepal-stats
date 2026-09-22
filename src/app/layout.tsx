@@ -21,9 +21,9 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NepalStats — One-stop national dashboard",
+  title: "WorldStats — National pulse for every country",
   description:
-    "Real-time and curated statistics for Nepal: people, economy, disasters, tourism, health, education, and more.",
+    "Pick any country for a live national dashboard: map, headlines, markets, hazards, leadership, and domain statistics — one dynamic model for the world.",
 };
 
 export default function RootLayout({

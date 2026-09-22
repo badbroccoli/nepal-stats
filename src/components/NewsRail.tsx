@@ -3,7 +3,13 @@
 import { timeAgo } from "@/lib/format";
 import type { NewsItem } from "@/lib/types";
 
-export function NewsRail({ items }: { items: NewsItem[] }) {
+export function NewsRail({
+  items,
+  title = "Live news",
+}: {
+  items: NewsItem[];
+  title?: string;
+}) {
   const sources = [...new Set(items.map((i) => i.source))];
 
   return (
@@ -11,7 +17,7 @@ export function NewsRail({ items }: { items: NewsItem[] }) {
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <div>
           <h2 className="text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-            Live Nepali news
+            {title}
           </h2>
           {sources.length > 0 && (
             <div className="mt-0.5 text-[10px] text-[var(--muted)]">

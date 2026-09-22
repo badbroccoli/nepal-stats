@@ -1,11 +1,18 @@
 import type { QuakeEvent } from "../types";
 import { cachedFetch } from "./cache";
 
-export async function fetchNepalEarthquakes(): Promise<QuakeEvent[]> {
-  return cachedFetch("usgs-quakes", 60 * 1000, async () => {
+export async function fetchEarthquakesInBBox(bbox: {
+  minLat: number;
+  maxLat: number;
+  minLon: number;
+  maxLon: number;
+}): Promise<QuakeEvent[]> {
+  const key = `usgs-${bbox.minLat.toFixed(1)}-${bbox.maxLat.toFixed(1)}-${bbox.minLon.toFixed(1)}-${bbox.maxLon.toFixed(1)}`;
+  return cachedFetch(key, 60 * 1000, async () => {
     const url =
       "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson" +
-      "&minlatitude=26&maxlatitude=31&minlongitude=80&maxlongitude=89" +
+      `&minlatitude=${bbox.minLat}&maxlatitude=${bbox.maxLat}` +
+      `&minlongitude=${bbox.minLon}&maxlongitude=${bbox.maxLon}` +
       "&orderby=time&limit=50";
     const res = await fetch(url, { next: { revalidate: 60 } });
     if (!res.ok) throw new Error(`USGS HTTP ${res.status}`);
@@ -46,4 +53,14 @@ export async function fetchNepalEarthquakes(): Promise<QuakeEvent[]> {
       title: f.properties.title,
     }));
   }).catch(() => []);
+}
+
+/** @deprecated use fetchEarthquakesInBBox */
+export async function fetchNepalEarthquakes(): Promise<QuakeEvent[]> {
+  return fetchEarthquakesInBBox({
+    minLat: 26,
+    maxLat: 31,
+    minLon: 80,
+    maxLon: 89,
+  });
 }

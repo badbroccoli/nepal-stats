@@ -49,7 +49,7 @@ export function DomainCards({ domains }: { domains: DomainMeta[] }) {
 }
 
 export function SourceStamp({
-  text = "Figures mix live connectors (NRB, USGS, RSS, World Bank) with curated official releases. Estimated values are labeled.",
+  text = "Figures mix live connectors (World Bank, USGS, Frankfurter FX, Google News RSS, Wikidata) with country registry fields. Estimated values are labeled.",
 }: {
   text?: string;
 }) {

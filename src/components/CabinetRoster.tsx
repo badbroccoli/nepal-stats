@@ -1,4 +1,4 @@
-import { CABINET, CABINET_AS_OF, type CabinetMember } from "@/lib/seed/cabinet";
+import type { GovMember, CountryGovernment } from "@/lib/connectors/government";
 
 function initials(name: string) {
   return name
@@ -13,7 +13,7 @@ function Portrait({
   member,
   featured = false,
 }: {
-  member: CabinetMember;
+  member: GovMember;
   featured?: boolean;
 }) {
   const size = featured
@@ -30,6 +30,7 @@ function Portrait({
         height={featured ? 144 : 96}
         className={`${size} shrink-0 rounded-sm object-cover object-top ring-1 ring-[#2a241c]`}
         loading={featured ? "eager" : "lazy"}
+        referrerPolicy="no-referrer"
       />
     );
   }
@@ -48,7 +49,7 @@ function MemberCard({
   member,
   featured = false,
 }: {
-  member: CabinetMember;
+  member: GovMember;
   featured?: boolean;
 }) {
   return (
@@ -74,7 +75,18 @@ function MemberCard({
                     : "display mt-1 text-xl"
                 }
               >
-                {member.name}
+                {member.wikipediaUrl ? (
+                  <a
+                    href={member.wikipediaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-[var(--accent)]"
+                  >
+                    {member.name}
+                  </a>
+                ) : (
+                  member.name
+                )}
               </h3>
               {member.nameNp && (
                 <div className="mt-0.5 text-sm text-[var(--muted)]">
@@ -82,9 +94,11 @@ function MemberCard({
                 </div>
               )}
             </div>
-            <span className="rounded border border-[var(--border)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--muted)]">
-              {member.party}
-            </span>
+            {member.party ? (
+              <span className="rounded border border-[var(--border)] px-2 py-0.5 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                {member.party}
+              </span>
+            ) : null}
           </div>
           <p
             className={
@@ -101,42 +115,67 @@ function MemberCard({
   );
 }
 
-export function CabinetRoster() {
-  const pm = CABINET.find((m) => m.tier === "pm");
-  const ministers = CABINET.filter((m) => m.tier === "minister");
-  const withPhotos = CABINET.filter((m) => m.photo).length;
+export function CabinetRoster({
+  government,
+  countryName,
+}: {
+  government: CountryGovernment;
+  countryName: string;
+}) {
+  const { headOfState, headOfGovernment, ministers, asOf, sourceNote } =
+    government;
+  const featured = [headOfState, headOfGovernment].filter(
+    Boolean,
+  ) as GovMember[];
+  // If HoS and HoG are the same person object-wise we may still have one slot
+  const featuredUnique = featured.filter(
+    (m, i, arr) => arr.findIndex((x) => x.name === m.name) === i,
+  );
+  const withPhotos =
+    featuredUnique.filter((m) => m.photo).length +
+    ministers.filter((m) => m.photo).length;
+  const total = featuredUnique.length + ministers.length;
 
   return (
     <section className="mt-8 space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="display text-xl md:text-2xl">
-            Prime Minister &amp; cabinet
+            Leadership &amp; cabinet
           </h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            Incumbent Council of Ministers with portraits and short public bios.
+            Head of state, head of government, and ministers for {countryName} —
+            portraits and short bios.
           </p>
         </div>
         <div className="mono text-[10px] uppercase tracking-wider text-[var(--muted)]">
-          As of {CABINET_AS_OF} · {CABINET.length} members · {withPhotos}{" "}
-          portraits
+          As of {asOf} · {total} profiles · {withPhotos} portraits
         </div>
       </div>
 
-      {pm && <MemberCard member={pm} featured />}
+      {featuredUnique.length === 0 && ministers.length === 0 && (
+        <p className="panel rounded-sm p-4 text-sm text-[var(--muted)]">
+          Live leadership data for {countryName} is not available right now.
+          Try again shortly — rosters are loaded from Wikidata and Wikipedia.
+        </p>
+      )}
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {ministers.map((m) => (
-          <MemberCard key={m.name + m.role} member={m} />
+      <div className="space-y-3">
+        {featuredUnique.map((m) => (
+          <MemberCard key={`lead-${m.name}-${m.role}`} member={m} featured />
         ))}
       </div>
 
+      {ministers.length > 0 && (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {ministers.map((m) => (
+            <MemberCard key={`${m.name}-${m.role}`} member={m} />
+          ))}
+        </div>
+      )}
+
       <p className="text-[11px] leading-relaxed text-[var(--muted)]">
-        Portraits from Wikimedia Commons where available; initials shown when no
-        free portrait is on file. Bios curated from public reporting (OPMCM /
-        Radio Nepal / national press / Wikipedia). Portfolios change with
-        reshuffles — treat as a living snapshot, not an official gazette
-        extract.
+        {sourceNote}
       </p>
     </section>
   );
