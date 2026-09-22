@@ -30,7 +30,7 @@ export default async function HomePage() {
               Everything Nepal, in one dark dashboard.
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-              Live FX, earthquakes, and news — plus curated official stats across
+              Live FX, natural disasters, and news — plus curated official stats across
               people, markets, government, health, education, energy, climate,
               tourism, digital, transport, agriculture, and migration.
             </p>
@@ -53,7 +53,11 @@ export default async function HomePage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
         <div className="min-h-[520px]">
-          <NepalMap quakes={pulse.quakes} height="520px" />
+          <NepalMap
+            incidents={pulse.disasters}
+            quakes={pulse.quakes}
+            height="520px"
+          />
         </div>
         <NewsRail items={pulse.news} />
       </section>
@@ -91,25 +95,42 @@ export default async function HomePage() {
         </div>
         <div className="panel rounded-sm p-4">
           <h2 className="mb-3 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-            Recent earthquakes (USGS)
+            Recent natural disasters
           </h2>
           <ul className="space-y-2">
-            {pulse.quakes.length === 0 && (
+            {pulse.disasters.length === 0 && (
               <li className="text-sm text-[var(--muted)]">
-                No events in the Nepal bounding box right now.
+                No recent BIPAD / USGS hazard events right now.
               </li>
             )}
-            {pulse.quakes.map((q) => (
+            {pulse.disasters.map((d) => (
               <li
-                key={q.id}
+                key={d.id}
                 className="flex items-start justify-between gap-3 border-b border-[var(--border)] pb-2 text-sm"
               >
-                <div>
-                  <span className="mono text-[var(--danger)]">M{q.mag}</span>{" "}
-                  {q.place}
+                <div className="flex items-start gap-2">
+                  <span
+                    className="mt-1.5 inline-block h-2 w-2 shrink-0"
+                    style={{ background: d.hazardColor }}
+                    aria-hidden
+                  />
+                  <div>
+                    <span className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
+                      {d.hazard}
+                    </span>
+                    <div>
+                      {d.url ? (
+                        <a href={d.url} target="_blank" rel="noopener noreferrer">
+                          {d.title}
+                        </a>
+                      ) : (
+                        d.title
+                      )}
+                    </div>
+                  </div>
                 </div>
                 <span className="shrink-0 text-[10px] text-[var(--muted)]">
-                  {timeAgo(q.time)}
+                  {timeAgo(d.time)}
                 </span>
               </li>
             ))}
