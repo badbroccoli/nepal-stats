@@ -1,12 +1,13 @@
 # Nepal Real-Time Statistics Dashboard
 
-Technical planning and architecture for a dark-themed, map-centric national dashboard covering population, disasters, district drill-downs, and a curated Nepali news feed.
+Planning for a dark-themed, map-centric **one-stop hub for everything Nepal**: people, economy, government finance, health, education, energy, environment, disasters, tourism, digital, transport, agriculture, migration, places, and news.
 
 ## Documents
 
 | Doc | Description |
 |-----|-------------|
-| [docs/TECHNICAL_PLAN.md](docs/TECHNICAL_PLAN.md) | Full implementation plan: features, architecture, stack, phases |
+| [docs/TECHNICAL_PLAN.md](docs/TECHNICAL_PLAN.md) | Architecture, stack, ingestion, phased delivery |
+| [docs/METRICS_CATALOG.md](docs/METRICS_CATALOG.md) | Expanded metric inventory (Worldometers / Trading Economics–style) |
 | [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) | Living register of APIs, cadences, and compliance notes |
 
 ## Recommended stack (summary)
@@ -14,8 +15,8 @@ Technical planning and architecture for a dark-themed, map-centric national dash
 - **Frontend:** Next.js + TypeScript, MapLibre GL, Tailwind (dark theme)
 - **Backend:** NestJS/Fastify, BullMQ workers, Socket.IO
 - **Data:** PostgreSQL + PostGIS, Redis
-- **Sources:** NSO CKAN, BIPAD, USGS, NRB Forex, Nepali RSS
+- **Sources:** NSO, National Data Portal, NRB, MoF, BIPAD, USGS, NTA, NTB, WAQI, Nepali RSS, and more
 
 ## Status
 
-Planning complete. Implementation not started — see Phase 0 in the technical plan.
+Planning in progress. Implementation not started — see phases in the technical plan.

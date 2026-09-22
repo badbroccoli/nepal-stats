@@ -2,7 +2,9 @@
 
 ## 1. Executive summary
 
-Build a dark-themed, map-centric national dashboard that combines **batch/official statistics** (population, births, district KPIs), **near-real-time hazard feeds** (earthquakes, floods, incidents), and a **curated Nepali news stream**. Because most Nepal government sources publish on schedules rather than true push streams, the system should treat “real-time” as **low-latency polling + WebSocket fan-out**, with clear freshness metadata on every metric.
+Build a dark-themed, map-centric **one-stop Nepal hub**: national pulse KPIs, interactive place drill-down, near-real-time hazards, markets/macro, sector deep-dives (health, education, tourism, energy, digital, migration), and a curated Nepali news stream. Because most Nepal government sources publish on schedules rather than true push streams, treat “real-time” as **low-latency polling + WebSocket fan-out**, with clear freshness metadata on every metric.
+
+The full metric inventory (beyond demography/disasters) lives in [`docs/METRICS_CATALOG.md`](./METRICS_CATALOG.md).
 
 ---
 
@@ -12,10 +14,11 @@ Build a dark-themed, map-centric national dashboard that combines **batch/offici
 
 | Feature | Behavior |
 |--------|----------|
-| National KPI strip | Live-updating population estimate, crude birth/death rates, FX (NPR), recent disaster counts |
-| Interactive Nepal map | Zoomable vector map (provinces → districts → local levels), choropleth + drill-down panel |
-| Disaster layer | Earthquakes, BIPAD incidents, optional river/rainfall stations |
-| News rail | Aggregated, deduplicated headlines from major Nepali outlets |
+| National pulse strip | Population estimate, FX, CPI/inflation, remittance, NEPSE headline, AQI, disaster counts |
+| Sectioned exploration | People, Economy, Government, Health, Education, Energy, Environment, Tourism, Digital, Transport, Agriculture, Migration |
+| Interactive Nepal map | Zoomable vector map (provinces → districts → local levels), multi-layer choropleth + drill-down |
+| Disaster + environment layers | Earthquakes, BIPAD incidents, river/rain, city AQI |
+| News + calendar rail | Nepali RSS headlines + economic/holiday calendar |
 | Dark data UI | Black/graphite base, high-contrast charts, bilingual labels (EN / नेपाली) |
 
 ### 2.2 Explicit non-goals (MVP)
@@ -23,6 +26,17 @@ Build a dark-themed, map-centric national dashboard that combines **batch/offici
 - Claiming second-by-second official census counters (NSO does not publish that)
 - Scraping paywalled full-text articles (RSS titles + links only)
 - Offline GIS editing or municipal CRM workflows
+- Replacing official ministry portals (we aggregate + link out with attribution)
+
+### 2.3 One-stop metric domains (summary)
+
+See **[`METRICS_CATALOG.md`](./METRICS_CATALOG.md)** for the full list. Priority bands:
+
+| Band | Domains |
+|------|---------|
+| **MVP pulse** | People, Economy (FX/CPI/remittance/reserves/trade), Disasters, AQI, News, Tourism arrivals, NEPSE index |
+| **v2 depth** | Health facilities & MoHP KPIs, Education IEMIS, NTA telecom, Public finance (MoF/FCGO), Kitchen prices |
+| **v3 breadth** | Energy mix, Migration/DoFE, Agriculture, Transport/EV, full local-level metric coverage |
 
 ---
 
@@ -56,13 +70,26 @@ Do **not** present interpolated counters as NSO live data.
 
 **BIPAD modules of interest:** Dashboard alerts, Incident reporting (police-fed), Realtime (rain/river/air/fire), Risk Info.
 
-### 3.3 Economic / other national metrics
+### 3.3 Economy, finance, markets & cross-sector hubs
 
 | Source | Metric | Notes |
 |--------|--------|-------|
-| **Nepal Rastra Bank Forex API** — `https://www.nrb.org.np/api/forex/v1/` | Daily NPR buy/sell rates | Documented `GET /rates?from=&to=&page=&per_page=`; cache aggressively (business-day cadence) |
-| **NSO national accounts / CKAN packages** | GDP, CPI (as available) | Batch ingest |
-| Optional later | MoF, DoC trade, election.gov.np | Feature modules |
+| **Nepal Rastra Bank Forex API** — `https://www.nrb.org.np/api/forex/v1/` | Daily NPR buy/sell rates | Cache aggressively (business-day cadence) |
+| **NRB Current Macroeconomic Situation** (monthly/annual PDF + tables) | CPI, remittance, reserves, BoP, trade | Parse published tables; primary macro spine |
+| **MoF data portal** — [data.mof.gov.np](http://data.mof.gov.np/) | Growth, revenue, monetary, external, inflation | Chart/data pages for fiscal/real sector |
+| **World Bank Nepal Fiscal Dashboard** | Federal/provincial/local revenue, expenditure, transfers | Best-in-class federalism finance UX to emulate + cite |
+| **National Data Portal** — [nationaldata.gov.np](https://nationaldata.gov.np/) | Health, tourism, water/energy, civil registration, social security | Cross-ministry catalog for many v2 metrics |
+| **Open Data Nepal** — [opendatanepal.com](https://opendatanepal.com/) | Mixed open datasets + API | Good discovery layer |
+| **NSO national accounts / CKAN** | GDP and structural stats | Batch ingest |
+| **NEPSE / lawful market APIs** | Index, turnover, movers | Prefer licensed/ToS-safe APIs; never scrape in violation |
+| **NTA MIS reports** | Mobile/broadband penetration | Periodic PDF/tables → structured ingest |
+| **NEA / DoED** | Generation, capacity, electrification | Annual/operational reports |
+| **NTB / MoCTCA** | Tourist arrivals | Monthly releases |
+| **CEHRD IEMIS / Flash reports** | Schools, enrollment | Annual academic flash |
+| **MoHP HMIS / National Data Portal health** | Facilities, mortality, disease | Mix of portal + publications |
+| **WAQI / OpenAQ** | City AQI / PM2.5 | True RT environment KPI |
+| **DoFE / MoLESS** | Labor migration outflows | Migration module |
+| **DoTM** | Vehicle / EV registrations | Transport module |
 
 ### 3.4 Geospatial boundaries
 
@@ -295,18 +322,27 @@ Circuit breakers: after N failures, cool down and serve cache; alert on Slack/Pa
 - WebSocket fan-out for new events
 - National disaster KPI counters
 
-### Phase 3 — Population model + FX + news
+### Phase 3 — National pulse (one-stop MVP)
 
-- Official baseline + documented estimate ticker
-- NRB FX card
+- Population estimate ticker + age/density map layers
+- NRB FX + CPI/remittance/reserves cards (from macro releases)
+- Tourism arrivals + AQI stations
+- NEPSE headline (lawful feed only)
 - RSS aggregator with dedupe and bilingual tags
+- Section nav shell for future domains (even if some are “coming soon”)
 
-### Phase 4 — Hardening
+### Phase 4 — Sector depth (v2)
 
+- Health, Education, Telecom, Public finance, Kitchen prices connectors
+- Shared `metric_definition` registry driven by `METRICS_CATALOG.md`
+- District comparison mode (“Bagmati vs Gandaki”)
+
+### Phase 5 — Hardening & breadth (v3)
+
+- Energy, migration, agriculture, transport/EV
 - Rate limits, robots/ToS compliance review
-- Observability, SLO dashboards
-- Performance: PMTiles, CDN geo caching
-- Optional auth for private municipal views
+- Observability, SLO dashboards, PMTiles + CDN geo caching
+- Crisis layout mode (flood/quake/epidemic KPI reorder)
 
 ---
 

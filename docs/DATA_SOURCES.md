@@ -19,6 +19,21 @@ Update this file whenever a connector is added, broken, or re-licensed.
 | `rss-himalayan` | News | The Himalayan Times | Site RSS directory | 2–5 min | None | Titles + links only | Planned |
 | `rss-setopati` | News | Setopati | RSS if available | 2–5 min | None | Skip if no lawful feed | Planned |
 | `rss-kantipur` | News | Kantipur | RSS if available | 2–5 min | None | Skip if no lawful feed | Planned |
+| `nationaldata` | Cross-sector | National Data Portal | https://nationaldata.gov.np/ | Weekly | Portal/download | GoN catalog for health/tourism/water/social | Planned |
+| `opendatanepal` | Cross-sector | Open Data Nepal | https://opendatanepal.com/ | Weekly | API/download | Community datasets | Planned |
+| `mof-data` | Fiscal/macro | Ministry of Finance | http://data.mof.gov.np/ | Daily–weekly | None/public pages | Revenue, CPI, external sector | Planned |
+| `wb-fiscal-np` | Fiscal federalism | World Bank Nepal Fiscal Dashboard | WB interactive + underlying series | Monthly | Cite WB | Transfers, PLG revenue/expenditure | Planned |
+| `nrb-macro` | Macro | NRB Current Macro Situation | nrb.org.np publications | Monthly | PDF/tables | Remittance, reserves, CPI, trade, BoP | Planned |
+| `nepse` | Markets | NEPSE / lawful API vendors | e.g. documented market APIs | Minutes–hours | Vendor key | Verify ToS before shipping | Planned |
+| `nta-mis` | Telecom | Nepal Telecommunications Authority | NTA MIS PDF/reports | Monthly | Download | Mobile/broadband penetration | Planned |
+| `ntb-arrivals` | Tourism | Nepal Tourism Board / MoCTCA | Monthly releases | Monthly | Download | Arrivals by nationality | Planned |
+| `waqi-aqi` | Environment | WAQI / OpenAQ | `api.waqi.info` / OpenAQ | 15–60 min | Token | Kathmandu & major cities AQI | Planned |
+| `cehrd-iemis` | Education | CEHRD Flash / IEMIS | Flash reports / emis.cehrd.gov.np | Annual | Download | Enrollment, schools, GPI | Planned |
+| `mohp-health` | Health | MoHP / National Data Portal health | Portal + HMIS publications | Monthly–annual | Mixed | Facilities, mortality, disease | Planned |
+| `nea-energy` | Energy | NEA / DoED | Annual reports / notices | Monthly–annual | Download | Capacity, generation, access | Planned |
+| `dofe-migration` | Migration | DoFE / MoLESS | Labor approval stats | Monthly | Download | Outflow by destination | Planned |
+| `dotm-vehicles` | Transport | Department of Transport Management | Registration releases | Monthly–annual | Download | Fleet + EV share | Planned |
+| `moald-agri` | Agriculture | MoALD / NSO ag census | Production stats | Seasonal | Download | Cereals, livestock | Planned |
 
 ## Connector checklist (per source)
 
