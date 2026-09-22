@@ -11,18 +11,23 @@ export function PopulationTicker({
   census: number;
 }) {
   const [value, setValue] = useState(estimate);
+  const [prevEstimate, setPrevEstimate] = useState(estimate);
+  if (estimate !== prevEstimate) {
+    setPrevEstimate(estimate);
+    setValue(estimate);
+  }
+
   const perSecond = useMemo(() => {
     // ~0.92% annual ≈ estimate * 0.0092 / seconds_per_year
     return (estimate * 0.0092) / (365.25 * 24 * 3600);
   }, [estimate]);
 
   useEffect(() => {
-    setValue(estimate);
     const id = window.setInterval(() => {
       setValue((v) => v + perSecond);
     }, 1000);
     return () => window.clearInterval(id);
-  }, [estimate, perSecond]);
+  }, [perSecond]);
 
   return (
     <div className="panel relative overflow-hidden rounded-sm p-5 md:p-7">
