@@ -19,6 +19,12 @@ export async function fetchNepalEarthquakes(): Promise<QuakeEvent[]> {
           time: number;
           url: string;
           depth?: number;
+          magType?: string;
+          felt?: number | null;
+          tsunami?: number;
+          sig?: number;
+          status?: string;
+          title?: string;
         };
       }>;
     };
@@ -32,6 +38,12 @@ export async function fetchNepalEarthquakes(): Promise<QuakeEvent[]> {
       lat: f.geometry.coordinates[1],
       depth: f.geometry.coordinates[2] ?? f.properties.depth ?? 0,
       url: f.properties.url,
+      magType: f.properties.magType,
+      felt: f.properties.felt ?? null,
+      tsunami: f.properties.tsunami ?? 0,
+      significance: f.properties.sig,
+      status: f.properties.status,
+      title: f.properties.title,
     }));
   }).catch(() => []);
 }

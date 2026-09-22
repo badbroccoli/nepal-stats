@@ -13,7 +13,7 @@ export default async function PlacesPage() {
       <SectionHeader
         title="Places"
         titleNp="स्थानहरू"
-        blurb="Dark basemap with district choropleth, headquarters, and earthquake markers. Hover or click districts and quake dots for population, density, depth, and USGS details."
+        blurb="OpenFreeMap basemap with district choropleth, headquarters, placenames, and earthquake markers. Hover or click districts and quake dots for population, density, felt reports, depth, and USGS details."
       />
       <NepalMap quakes={quakes} height="640px" />
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

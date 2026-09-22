@@ -35,6 +35,12 @@ type QuakeSelection = {
   lat: number;
   lon: number;
   url: string;
+  magType?: string;
+  felt?: number | null;
+  tsunami?: number;
+  significance?: number;
+  status?: string;
+  title?: string;
 };
 
 type DistrictSelection = {
@@ -60,14 +66,18 @@ function buildQuakePopupHtml(q: QuakeSelection): string {
     dateStyle: "medium",
     timeStyle: "short",
   });
+  const felt =
+    q.felt != null && q.felt > 0 ? `${formatNumber(q.felt)} reports` : "none yet";
+  const magLabel = q.magType ? `M${q.mag.toFixed(1)} (${q.magType})` : `M ${q.mag.toFixed(1)}`;
   return `
     <div class="quake-popup">
-      <div class="quake-popup__mag" style="color:${quakeColor(q.mag)}">M ${q.mag.toFixed(1)}</div>
-      <div class="quake-popup__place">${q.place}</div>
+      <div class="quake-popup__mag" style="color:${quakeColor(q.mag)}">${magLabel}</div>
+      <div class="quake-popup__place">${q.title ?? q.place}</div>
       <div class="quake-popup__meta">
         <div><span>Depth</span> ${q.depth.toFixed(1)} km</div>
         <div><span>When</span> ${when}</div>
         <div><span>Ago</span> ${timeAgo(q.time)}</div>
+        <div><span>Felt</span> ${felt}</div>
         <div><span>Coords</span> ${q.lat.toFixed(3)}°, ${q.lon.toFixed(3)}°</div>
       </div>
       <a class="quake-popup__link" href="${q.url}" target="_blank" rel="noopener noreferrer">USGS event details →</a>
@@ -96,41 +106,7 @@ export function NepalMap({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: {
-        version: 8,
-        name: "nepal-detailed",
-        glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
-        sources: {
-          carto: {
-            type: "raster",
-            tiles: [
-              "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-              "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-              "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-            ],
-            tileSize: 256,
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-          },
-        },
-        layers: [
-          {
-            id: "background",
-            type: "background",
-            paint: { "background-color": "#070807" },
-          },
-          {
-            id: "basemap",
-            type: "raster",
-            source: "carto",
-            paint: {
-              "raster-opacity": 0.92,
-              "raster-saturation": -0.15,
-              "raster-brightness-min": 0.05,
-            },
-          },
-        ],
-      },
+      style: "https://tiles.openfreemap.org/styles/dark",
       center: [84.1, 28.2],
       zoom: 6.35,
       minZoom: 5,
@@ -230,55 +206,68 @@ export function NepalMap({
             data: { type: "FeatureCollection", features: hqFeatures },
           });
 
-          map.addLayer({
-            id: "district-fill",
-            type: "fill",
-            source: "districts",
-            paint: {
-              "fill-color": [
-                "interpolate",
-                ["linear"],
-                ["get", "population"],
-                50000,
-                "#0d3d2c",
-                200000,
-                "#1a6b4a",
-                500000,
-                "#2f9e6a",
-                900000,
-                "#3ddc97",
-                1500000,
-                "#b8ffe0",
-              ],
-              "fill-opacity": [
-                "case",
-                ["boolean", ["feature-state", "hover"], false],
-                0.72,
-                0.48,
-              ],
-            },
-          });
+          // Sit under roads/labels so basemap detail stays readable.
+          const underRoads = map.getLayer("highway_path")
+            ? "highway_path"
+            : map.getLayer("boundary_state")
+              ? "boundary_state"
+              : undefined;
 
-          map.addLayer({
-            id: "district-line",
-            type: "line",
-            source: "districts",
-            paint: {
-              "line-color": "#9fd9b8",
-              "line-width": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                5,
-                0.4,
-                8,
-                1.1,
-                11,
-                1.6,
-              ],
-              "line-opacity": 0.55,
+          map.addLayer(
+            {
+              id: "district-fill",
+              type: "fill",
+              source: "districts",
+              paint: {
+                "fill-color": [
+                  "interpolate",
+                  ["linear"],
+                  ["get", "population"],
+                  50000,
+                  "#0d3d2c",
+                  200000,
+                  "#1a6b4a",
+                  500000,
+                  "#2f9e6a",
+                  900000,
+                  "#3ddc97",
+                  1500000,
+                  "#b8ffe0",
+                ],
+                "fill-opacity": [
+                  "case",
+                  ["boolean", ["feature-state", "hover"], false],
+                  0.62,
+                  0.38,
+                ],
+              },
             },
-          });
+            underRoads,
+          );
+
+          map.addLayer(
+            {
+              id: "district-line",
+              type: "line",
+              source: "districts",
+              paint: {
+                "line-color": "#9fd9b8",
+                "line-width": [
+                  "interpolate",
+                  ["linear"],
+                  ["zoom"],
+                  5,
+                  0.4,
+                  8,
+                  1.1,
+                  11,
+                  1.6,
+                ],
+                "line-opacity": 0.65,
+              },
+            },
+            underRoads,
+          );
 
           map.addLayer({
             id: "district-highlight",
@@ -292,38 +281,45 @@ export function NepalMap({
             },
           });
 
-          map.addLayer({
-            id: "district-labels",
-            type: "symbol",
-            source: "districts",
-            minzoom: 6.4,
-            layout: {
-              "text-field": ["get", "name"],
-              "text-size": [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                6.5,
-                9,
-                9,
-                12,
-                11,
-                14,
-              ],
-              "text-font": ["Open Sans Regular"],
-              "text-transform": "uppercase",
-              "text-letter-spacing": 0.04,
-              "text-max-width": 8,
-              "text-padding": 2,
-              "symbol-sort-key": ["-", ["get", "population"]],
+          const underPlaces = map.getLayer("place_other")
+            ? "place_other"
+            : undefined;
+
+          map.addLayer(
+            {
+              id: "district-labels",
+              type: "symbol",
+              source: "districts",
+              minzoom: 6.2,
+              layout: {
+                "text-field": ["get", "name"],
+                "text-size": [
+                  "interpolate",
+                  ["linear"],
+                  ["zoom"],
+                  6.2,
+                  9,
+                  9,
+                  12,
+                  11,
+                  14,
+                ],
+                "text-font": ["Noto Sans Regular"],
+                "text-transform": "uppercase",
+                "text-letter-spacing": 0.04,
+                "text-max-width": 8,
+                "text-padding": 2,
+                "symbol-sort-key": ["-", ["get", "population"]],
+              },
+              paint: {
+                "text-color": "#e8f5ee",
+                "text-halo-color": "#050805",
+                "text-halo-width": 1.4,
+                "text-opacity": 0.92,
+              },
             },
-            paint: {
-              "text-color": "#e8f5ee",
-              "text-halo-color": "#050805",
-              "text-halo-width": 1.4,
-              "text-opacity": 0.9,
-            },
-          });
+            underPlaces,
+          );
 
           map.addLayer({
             id: "hq-dots",
@@ -355,7 +351,7 @@ export function NepalMap({
             layout: {
               "text-field": ["get", "hq"],
               "text-size": 10,
-              "text-font": ["Open Sans Regular"],
+              "text-font": ["Noto Sans Regular"],
               "text-offset": [0, 1.1],
               "text-anchor": "top",
               "text-optional": true,
@@ -503,6 +499,12 @@ export function NepalMap({
           url: q.url,
           lat: q.lat,
           lon: q.lon,
+          magType: q.magType ?? "",
+          felt: q.felt ?? -1,
+          tsunami: q.tsunami ?? 0,
+          significance: q.significance ?? 0,
+          status: q.status ?? "",
+          title: q.title ?? q.place,
           magLabel: `M${q.mag.toFixed(1)}`,
         },
         geometry: { type: "Point", coordinates: [q.lon, q.lat] },
@@ -610,7 +612,7 @@ export function NepalMap({
         layout: {
           "text-field": ["get", "magLabel"],
           "text-size": 10,
-          "text-font": ["Open Sans Regular"],
+          "text-font": ["Noto Sans Regular"],
           "text-offset": [0, -1.35],
           "text-anchor": "bottom",
           "text-allow-overlap": false,
@@ -643,6 +645,12 @@ export function NepalMap({
         lat: Number(props.lat ?? f.geometry.coordinates[1]),
         lon: Number(props.lon ?? f.geometry.coordinates[0]),
         url: String(props.url ?? "#"),
+        magType: String(props.magType || "") || undefined,
+        felt: Number(props.felt) >= 0 ? Number(props.felt) : null,
+        tsunami: Number(props.tsunami ?? 0),
+        significance: Number(props.significance ?? 0),
+        status: String(props.status || "") || undefined,
+        title: String(props.title || props.place || ""),
       };
       setSelectedDistrict(null);
       setSelectedQuake(selection);
@@ -716,6 +724,11 @@ export function NepalMap({
                 style={{ color: quakeColor(selectedQuake.mag) }}
               >
                 M {selectedQuake.mag.toFixed(1)}
+                {selectedQuake.magType ? (
+                  <span className="ml-2 text-sm text-[var(--muted)]">
+                    {selectedQuake.magType}
+                  </span>
+                ) : null}
               </div>
             </div>
             <button
@@ -730,8 +743,14 @@ export function NepalMap({
               ✕
             </button>
           </div>
-          <p className="mt-2 leading-snug text-[var(--text)]">{selectedQuake.place}</p>
+          <p className="mt-2 leading-snug text-[var(--text)]">
+            {selectedQuake.title ?? selectedQuake.place}
+          </p>
           <dl className="mono mt-3 space-y-1.5 text-[11px]">
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--muted)]">Magnitude type</dt>
+              <dd>{selectedQuake.magType || "—"}</dd>
+            </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--muted)]">Depth</dt>
               <dd>{selectedQuake.depth.toFixed(1)} km</dd>
@@ -739,6 +758,26 @@ export function NepalMap({
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--muted)]">Occurred</dt>
               <dd>{timeAgo(selectedQuake.time)}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--muted)]">Felt reports</dt>
+              <dd>
+                {selectedQuake.felt != null && selectedQuake.felt > 0
+                  ? formatNumber(selectedQuake.felt)
+                  : "none yet"}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--muted)]">Significance</dt>
+              <dd>{selectedQuake.significance ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--muted)]">Tsunami alert</dt>
+              <dd>{selectedQuake.tsunami ? "Yes" : "No"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-[var(--muted)]">Review status</dt>
+              <dd className="capitalize">{selectedQuake.status || "—"}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--muted)]">Latitude</dt>
