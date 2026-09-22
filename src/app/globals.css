@@ -76,6 +76,58 @@ a {
   border-top-color: #111 !important;
 }
 
+.nepal-map-popup .maplibregl-popup-content {
+  background: #120a0a !important;
+  border-color: #4a2a2a !important;
+  padding: 10px 12px !important;
+  min-width: 200px;
+}
+
+.nepal-map-popup .maplibregl-popup-close-button {
+  color: #9a9a92;
+  font-size: 16px;
+  padding: 2px 6px;
+}
+
+.quake-popup__mag {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.quake-popup__place {
+  margin-top: 4px;
+  line-height: 1.35;
+  font-size: 12px;
+}
+
+.quake-popup__meta {
+  margin-top: 8px;
+  display: grid;
+  gap: 4px;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.quake-popup__meta span {
+  color: var(--muted);
+  margin-right: 6px;
+}
+
+.quake-popup__link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent) !important;
+  font-size: 11px;
+}
+
+.maplibregl-ctrl-scale {
+  background: #050505cc !important;
+  border-color: #333 !important;
+  color: #9a9a92 !important;
+  font-size: 10px !important;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

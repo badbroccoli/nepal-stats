@@ -59,6 +59,12 @@ export interface QuakeEvent {
   lon: number;
   depth: number;
   url: string;
+  magType?: string;
+  felt?: number | null;
+  tsunami?: number;
+  significance?: number;
+  status?: string;
+  title?: string;
 }
 
 export interface HazardType {
