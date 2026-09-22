@@ -173,7 +173,9 @@ export function NepalMap({
     useState<DistrictSelection | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
-  quakesRef.current = quakes;
+  useEffect(() => {
+    quakesRef.current = quakes;
+  }, [quakes]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
