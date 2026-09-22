@@ -160,7 +160,7 @@ Each section gets: national KPI strip → trend charts → province/district map
 
 ## H. Disasters & Safety *(core plan — keep)*
 
-Earthquakes (USGS), BIPAD incidents, damage & loss, rainfall/river alerts, fire hotspots, landslide seasonality. Add **crime / traffic accident** summaries if Nepal Police publishes structured open data.
+**Live:** BIPAD natural hazards (flood, landslide, fire, thunderbolt, wind storm, heavy rainfall, avalanche, earthquake, cold/heat wave, drought, GLOF, forest fire, and other `type=natural` hazards), DHM river alerts / elevated stations, USGS seismicity in the Nepal bbox. Damage & loss summaries remain planned where loss APIs are joined.
 
 ---
 

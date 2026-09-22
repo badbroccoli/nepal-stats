@@ -61,6 +61,47 @@ export interface QuakeEvent {
   url: string;
 }
 
+export interface HazardType {
+  id: number;
+  title: string;
+  titleNe?: string;
+  color: string;
+  kind: "natural" | "non natural";
+}
+
+export interface DisasterIncident {
+  id: string;
+  source: "bipad" | "usgs";
+  hazardId: number;
+  hazard: string;
+  hazardColor: string;
+  title: string;
+  time: string;
+  lat: number;
+  lon: number;
+  url?: string;
+  mag?: number;
+  depth?: number;
+}
+
+export interface FloodAlert {
+  id: string;
+  title: string;
+  hazard: string;
+  hazardColor: string;
+  startedOn: string;
+  expireOn?: string;
+  lat: number;
+  lon: number;
+  description?: string;
+}
+
+export interface RiverWatchSummary {
+  monitored: number;
+  elevated: number;
+  danger: number;
+}
+
 export interface ForexRate {
   currency: string;
   iso3: string;
@@ -83,6 +124,7 @@ export interface PulsePayload {
   metrics: Metric[];
   forex: ForexRate[];
   quakes: QuakeEvent[];
+  disasters: DisasterIncident[];
   news: NewsItem[];
   domains: DomainMeta[];
 }

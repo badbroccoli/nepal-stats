@@ -5,7 +5,7 @@ import maplibregl from "maplibre-gl";
 import { PROVINCE_NAMES } from "@/lib/domains";
 import { formatCompact } from "@/lib/format";
 import { DISTRICT_POPULATION } from "@/lib/seed/metrics";
-import type { QuakeEvent } from "@/lib/types";
+import type { DisasterIncident, QuakeEvent } from "@/lib/types";
 
 type HoverInfo = {
   name: string;
@@ -15,11 +15,33 @@ type HoverInfo = {
   y: number;
 };
 
+function toMarkers(
+  incidents: DisasterIncident[],
+  quakes: QuakeEvent[],
+): DisasterIncident[] {
+  if (incidents.length) return incidents;
+  return quakes.map((q) => ({
+    id: `usgs-${q.id}`,
+    source: "usgs" as const,
+    hazardId: 8,
+    hazard: "Earthquake",
+    hazardColor: "#ff6b6b",
+    title: `M${q.mag} · ${q.place}`,
+    time: q.time,
+    lat: q.lat,
+    lon: q.lon,
+    url: q.url,
+    mag: q.mag,
+  }));
+}
+
 export function NepalMap({
   quakes = [],
+  incidents = [],
   height = "100%",
 }: {
   quakes?: QuakeEvent[];
+  incidents?: DisasterIncident[];
   height?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -161,43 +183,46 @@ export function NepalMap({
     const map = mapRef.current;
     if (!map || status !== "ready") return;
 
+    const markers = toMarkers(incidents, quakes);
     const data: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
-      features: quakes.map((q) => ({
+      features: markers.map((m) => ({
         type: "Feature",
-        properties: { mag: q.mag, place: q.place },
-        geometry: { type: "Point", coordinates: [q.lon, q.lat] },
+        properties: {
+          hazard: m.hazard,
+          color: m.hazardColor || "#ff6b6b",
+          title: m.title,
+          radius: m.mag != null ? Math.max(4, Math.min(14, m.mag * 2.2)) : 6,
+        },
+        geometry: { type: "Point", coordinates: [m.lon, m.lat] },
       })),
     };
 
-    const source = map.getSource("quakes") as maplibregl.GeoJSONSource | undefined;
+    const source = map.getSource("hazards") as maplibregl.GeoJSONSource | undefined;
     if (source) {
       source.setData(data);
       return;
     }
 
-    map.addSource("quakes", { type: "geojson", data });
+    map.addSource("hazards", { type: "geojson", data });
     map.addLayer({
-      id: "quake-circles",
+      id: "hazard-circles",
       type: "circle",
-      source: "quakes",
+      source: "hazards",
       paint: {
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["get", "mag"],
-          2,
-          4,
-          6,
-          14,
-        ],
-        "circle-color": "#ff6b6b",
+        "circle-radius": ["get", "radius"],
+        "circle-color": ["get", "color"],
         "circle-opacity": 0.85,
         "circle-stroke-width": 1,
-        "circle-stroke-color": "#290909",
+        "circle-stroke-color": "#120808",
       },
     });
-  }, [quakes, status]);
+  }, [incidents, quakes, status]);
+
+  const legend =
+    incidents.length > 0
+      ? "District choropleth · multi-hazard markers"
+      : "District population choropleth · quake markers";
 
   return (
     <div className="panel relative overflow-hidden rounded-sm" style={{ height }}>
@@ -220,7 +245,7 @@ export function NepalMap({
         </div>
       )}
       <div className="pointer-events-none absolute bottom-3 left-3 rounded bg-[#050505cc] px-2 py-1 text-[10px] uppercase tracking-wider text-[var(--muted)]">
-        District population choropleth · quake markers
+        {legend}
       </div>
     </div>
   );
