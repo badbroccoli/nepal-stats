@@ -213,6 +213,22 @@ export function NepalMap({
               ? "boundary_state"
               : undefined;
 
+          if (map.getSource("ne2_shaded") && !map.getLayer("nepal-relief")) {
+            map.addLayer(
+              {
+                id: "nepal-relief",
+                type: "raster",
+                source: "ne2_shaded",
+                maxzoom: 8,
+                paint: {
+                  "raster-opacity": 0.45,
+                  "raster-contrast": 0.15,
+                },
+              },
+              underRoads,
+            );
+          }
+
           map.addLayer(
             {
               id: "district-fill",
@@ -237,8 +253,8 @@ export function NepalMap({
                 "fill-opacity": [
                   "case",
                   ["boolean", ["feature-state", "hover"], false],
-                  0.62,
-                  0.38,
+                  0.55,
+                  0.28,
                 ],
               },
             },
