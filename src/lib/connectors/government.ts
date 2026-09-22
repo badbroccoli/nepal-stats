@@ -326,12 +326,14 @@ async function wikiParseCabinetMembers(pageTitle: string): Promise<
     const html = json.parse?.text?.["*"] ?? "";
     if (!html) return [];
 
+    // Decode named/numeric entities once; apply &amp; last to avoid
+    // cascading double-unescape (CodeQL js/double-escaping).
     const decode = (s: string) =>
       s
-        .replace(/&amp;/g, "&")
         .replace(/&#8211;/g, "–")
         .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'");
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, "&");
 
     const out: Array<{ name: string; role: string; wikiTitle: string }> = [];
     const seen = new Set<string>();
