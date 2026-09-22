@@ -5,6 +5,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # eslint-config-next (typescript-eslint / eslint-plugin-*) does not yet
+    # support ESLint 10 or TypeScript 7. Keep majors pinned until upstream does.
+    ignore:
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     groups:
       production-dependencies:
         dependency-type: production

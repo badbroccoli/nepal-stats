@@ -21,6 +21,7 @@ import {
 } from "@/lib/geo";
 import { CENSUS_POPULATION_2021, DISTRICT_POPULATION } from "@/lib/seed/metrics";
 import type { DisasterIncident, QuakeEvent } from "@/lib/types";
+import type { Feature, FeatureCollection } from "geojson";
 
 type DistrictHover = {
   name: string;
@@ -260,10 +261,9 @@ export function NepalMap({
       try {
         const res = await fetch("/api/geo/districts");
         if (!res.ok) throw new Error(String(res.status));
-        const geo = (await res.json()) as GeoJSON.FeatureCollection;
-
-        const hqFeatures: GeoJSON.Feature[] = [];
-        const enriched: GeoJSON.FeatureCollection = {
+        const geo = (await res.json()) as FeatureCollection;
+        const hqFeatures: Feature[] = [];
+        const enriched: FeatureCollection = {
           type: "FeatureCollection",
           features: geo.features.map((f) => {
             const rawName = String(f.properties?.DISTRICT ?? "");
@@ -632,7 +632,7 @@ export function NepalMap({
     if (!map || status !== "ready") return;
 
     const markers = toMarkers(incidents, quakes);
-    const data: GeoJSON.FeatureCollection = {
+    const data: FeatureCollection = {
       type: "FeatureCollection",
       features: markers.map((m) => ({
         type: "Feature",

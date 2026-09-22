@@ -1,4 +1,6 @@
 /** District name aliases between geojson labels and census seed keys. */
+import type { Geometry, Position } from "geojson";
+
 const DISTRICT_ALIASES: Record<string, string> = {
   "EASTERN RUKUM": "RUKUM_E",
   "WESTERN RUKUM": "RUKUM_W",
@@ -20,7 +22,7 @@ export function displayDistrictName(raw: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function ringAreaKm2(ring: number[][]): number {
+function ringAreaKm2(ring: Position[]): number {
   if (ring.length < 3) return 0;
   const lat0 = ring.reduce((s, p) => s + p[1], 0) / ring.length;
   const mPerDegLat = 111_320;
@@ -36,7 +38,7 @@ function ringAreaKm2(ring: number[][]): number {
   return Math.abs(sum) / 2 / 1e6;
 }
 
-function polygonRings(geometry: GeoJSON.Geometry): number[][][] {
+function polygonRings(geometry: Geometry): Position[][] {
   if (geometry.type === "Polygon") return [geometry.coordinates[0]];
   if (geometry.type === "MultiPolygon") {
     return geometry.coordinates.map((poly) => poly[0]);
@@ -44,12 +46,12 @@ function polygonRings(geometry: GeoJSON.Geometry): number[][][] {
   return [];
 }
 
-export function featureAreaKm2(geometry: GeoJSON.Geometry): number {
+export function featureAreaKm2(geometry: Geometry): number {
   return polygonRings(geometry).reduce((s, ring) => s + ringAreaKm2(ring), 0);
 }
 
 export function featureCentroid(
-  geometry: GeoJSON.Geometry,
+  geometry: Geometry,
 ): [number, number] | null {
   const rings = polygonRings(geometry);
   if (!rings.length) return null;

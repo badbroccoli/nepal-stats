@@ -38,7 +38,7 @@ export default function RootLayout({
             breaks @tailwindcss/postcss when imported via globals.css. */}
         <link
           rel="stylesheet"
-          href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+          href="https://unpkg.com/maplibre-gl@6.10.0/dist/maplibre-gl.css"
           crossOrigin="anonymous"
         />
       </head>
