@@ -34,3 +34,8 @@ Optional: set `WAQI_TOKEN` for live Kathmandu AQI.
 ## Stack
 
 Next.js · MapLibre · Recharts · TypeScript · Tailwind
+
+## Cloud Agent environment
+
+`.cursor/environment.json` installs `web/` deps and starts the Next.js dev server.
+
