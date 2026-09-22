@@ -1,10 +1,10 @@
 {
   "name": "Nepal Real-Time Dashboard",
-  "install": "npm --prefix web ci",
+  "install": "npm ci",
   "terminals": [
     {
       "name": "web",
-      "command": "npm --prefix web run dev"
+      "command": "npm run dev"
     }
   ]
 }
