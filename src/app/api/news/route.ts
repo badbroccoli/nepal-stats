@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const raw = (searchParams.get("country") || "np").toLowerCase();
-  const code = isCountryCode(raw) ? raw : "np";
+  const code = isCountryCode(raw) ? raw : "us";
   const country = getCountry(code)!;
   const news = await fetchCountryNews(country.code, country.name);
   return jsonWithCache(

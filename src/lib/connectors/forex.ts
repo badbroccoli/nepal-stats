@@ -1,6 +1,5 @@
 import type { ForexRate } from "../types";
 import { cachedFetch } from "./cache";
-import { fetchNrbForex } from "./nrb";
 
 const MAJORS = ["USD", "EUR", "GBP", "JPY", "CNY", "INR", "AUD", "CAD"];
 
@@ -22,7 +21,6 @@ export async function fetchFrankfurterForex(
     const rates = json.rates ?? {};
     const out: ForexRate[] = [];
 
-    // Always include USD and a few majors priced in the quote currency.
     for (const iso3 of MAJORS) {
       if (iso3 === json.base) continue;
       const rate = rates[iso3];
@@ -37,7 +35,6 @@ export async function fetchFrankfurterForex(
     }
 
     if (base !== "USD" && rates[base] != null) {
-      // Express local currency per 1 USD when possible.
       const perUsd = from === "USD" ? rates[base]! : 1 / rates[base]!;
       out.unshift({
         currency: base,
@@ -53,14 +50,8 @@ export async function fetchFrankfurterForex(
 }
 
 export async function fetchCountryForex(
-  countryCode: string,
+  _countryCode: string,
   currency?: string | null,
 ): Promise<ForexRate[]> {
-  if (countryCode.toLowerCase() === "np") {
-    const nrb = await fetchNrbForex();
-    return nrb.filter((r) =>
-      ["USD", "INR", "EUR", "CNY", "GBP", "JPY"].includes(r.iso3),
-    );
-  }
   return fetchFrankfurterForex(currency);
 }

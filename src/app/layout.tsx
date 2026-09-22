@@ -23,7 +23,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "WorldStats — National pulse for every country",
   description:
-    "Pick any country for a live national dashboard: map, headlines, markets, hazards, and domain stats — the same model as Nepal, generated dynamically.",
+    "Pick any country for a live national dashboard: map, headlines, markets, hazards, leadership, and domain statistics — one dynamic model for the world.",
 };
 
 export default function RootLayout({

@@ -1,4 +1,5 @@
 import { MetricGrid } from "@/components/KpiCard";
+import { OfficialSourcesPanel } from "@/components/OfficialSourcesPanel";
 import { SectionHeader, SourceStamp } from "@/components/SectionHeader";
 import { domainsFor } from "@/lib/domains";
 import { getCountryDomainMetrics } from "@/lib/connectors/domainMetrics";
@@ -8,13 +9,12 @@ import type { ReactNode } from "react";
 
 export async function DomainPage({
   id,
-  countryCode = "np",
+  countryCode = "us",
   metrics: metricsProp,
   children,
 }: {
   id: DomainId;
   countryCode?: string;
-  /** Optional precomputed metrics (e.g. disasters with live counts). */
   metrics?: Metric[];
   children?: ReactNode;
 }) {
@@ -23,6 +23,21 @@ export async function DomainPage({
   const metrics =
     metricsProp ??
     (country ? await getCountryDomainMetrics(id, country) : []);
+
+  const activeConnectors = [
+    ...new Set(
+      metrics
+        .map((m) => m.source.toLowerCase())
+        .flatMap((s) => {
+          const out: string[] = [];
+          if (s.includes("eurostat")) out.push("eurostat");
+          if (s.includes("world bank")) out.push("worldbank");
+          if (s.includes("census")) out.push("census_us");
+          if (s.includes("usgs")) out.push("usgs");
+          return out;
+        }),
+    ),
+  ];
 
   return (
     <div>
@@ -33,13 +48,14 @@ export async function DomainPage({
       />
       <MetricGrid metrics={metrics} />
       {children}
-      <SourceStamp
-        text={
-          countryCode === "np"
-            ? undefined
-            : "Figures prefer live World Bank indicators for this country, plus registry fields. Estimated or unavailable series are omitted."
-        }
-      />
+      {country && (
+        <OfficialSourcesPanel
+          countryCode={country.code}
+          countryName={country.name}
+          activeConnectors={activeConnectors}
+        />
+      )}
+      <SourceStamp />
     </div>
   );
 }

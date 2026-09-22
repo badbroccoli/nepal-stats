@@ -1,12 +1,19 @@
 import { cachedFetch } from "./cache";
-import { CABINET, CABINET_AS_OF, type CabinetMember } from "../seed/cabinet";
 
-const UA =
-  "WorldStatsDashboard/1.0 (https://github.com/badbroccoli/nepal-stats; national-pulse)";
+export type CabinetMember = {
+  name: string;
+  nameNp?: string;
+  role: string;
+  party: string;
+  bio: string;
+  /** Featured leader vs cabinet minister */
+  tier: "pm" | "minister";
+  photo?: string;
+};
 
 export type GovMember = CabinetMember & {
   wikipediaUrl?: string;
-  source: "wikidata" | "seed";
+  source: "wikidata" | "wikipedia";
 };
 
 export type CountryGovernment = {
@@ -16,6 +23,9 @@ export type CountryGovernment = {
   ministers: GovMember[];
   sourceNote: string;
 };
+
+const UA =
+  "WorldStatsDashboard/1.0 (https://github.com/badbroccoli/nepal-stats; national-pulse)";
 
 type WdEntity = {
   id: string;
@@ -516,16 +526,13 @@ async function runSparql(query: string): Promise<
   }
 }
 
-function seedAsGovernment(): CountryGovernment {
-  const pm = CABINET.find((m) => m.tier === "pm") ?? null;
-  const ministers = CABINET.filter((m) => m.tier === "minister");
+function emptyGovernment(note: string): CountryGovernment {
   return {
-    asOf: CABINET_AS_OF,
+    asOf: new Date().toISOString().slice(0, 10),
     headOfState: null,
-    headOfGovernment: pm ? { ...pm, source: "seed" as const } : null,
-    ministers: ministers.map((m) => ({ ...m, source: "seed" as const })),
-    sourceNote:
-      "Curated Nepal Council of Ministers snapshot (portraits from Wikimedia Commons where available).",
+    headOfGovernment: null,
+    ministers: [],
+    sourceNote: note,
   };
 }
 
@@ -534,32 +541,11 @@ export async function fetchCountryGovernment(
   countryName: string,
 ): Promise<CountryGovernment> {
   const code = iso2.toLowerCase();
-
-  if (code === "np") {
-    const seeded = seedAsGovernment();
-    try {
-      const live = await cachedFetch(`gov-leaders-${code}`, 12 * 60 * 60 * 1000, () =>
-        fetchLeadersOnly(code, countryName),
-      );
-      return {
-        ...seeded,
-        headOfState: live.headOfState,
-        sourceNote: `${seeded.sourceNote} Head of state from Wikidata/Wikipedia when available.`,
-      };
-    } catch {
-      return seeded;
-    }
-  }
-
-  return cachedFetch(`gov-v4-${code}`, 6 * 60 * 60 * 1000, () =>
+  return cachedFetch(`gov-v5-${code}`, 6 * 60 * 60 * 1000, () =>
     fetchLiveGovernment(code, countryName),
-  ).catch(() => ({
-    asOf: new Date().toISOString().slice(0, 10),
-    headOfState: null,
-    headOfGovernment: null,
-    ministers: [],
-    sourceNote: "Government roster temporarily unavailable.",
-  }));
+  ).catch(() =>
+    emptyGovernment("Government roster temporarily unavailable."),
+  );
 }
 
 async function fetchLeadersOnly(

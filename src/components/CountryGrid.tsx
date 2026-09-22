@@ -57,8 +57,7 @@ export function CountryGrid() {
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--muted)] md:text-base">
             Pick a nation to open a live dashboard — map, headlines, markets,
-            hazards, and domain stats — generated dynamically from the same
-            template used for Nepal.
+            hazards, and domain stats — generated dynamically for every country.
           </p>
         </div>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

@@ -1,8 +1,12 @@
 import { cachedFetch } from "./cache";
-import { fetchWorldBankIndicator, fetchWorldBankPopulation } from "./worldbank";
+import {
+  fetchWorldBankIndicator,
+  fetchWorldBankPopulation,
+  fetchWorldBankSeries,
+  type WbSeriesPoint,
+} from "./worldbank";
 import type { Country } from "../countries";
 import type { DomainId, Metric } from "../types";
-import { DOMAIN_METRICS } from "../seed/metrics";
 
 type IndicatorDef = {
   key: string;
@@ -10,6 +14,15 @@ type IndicatorDef = {
   indicator: string;
   unit?: string;
   format?: Metric["format"];
+};
+
+export type ChartSeriesDef = {
+  key: string;
+  title: string;
+  indicator: string;
+  color: string;
+  kind: "area" | "bars";
+  format?: "number" | "compact" | "percent";
 };
 
 const DOMAIN_INDICATORS: Partial<Record<DomainId, IndicatorDef[]>> = {
@@ -319,10 +332,201 @@ const DOMAIN_INDICATORS: Partial<Record<DomainId, IndicatorDef[]>> = {
       format: "compact",
     },
   ],
-  disasters: [
-    // Filled live with USGS counts in the disasters page
+};
+
+/** Trend charts that read well on each domain page. */
+export const DOMAIN_CHARTS: Partial<Record<DomainId, ChartSeriesDef[]>> = {
+  people: [
+    {
+      key: "pop",
+      title: "Population",
+      indicator: "SP.POP.TOTL",
+      color: "#3DDC97",
+      kind: "area",
+      format: "compact",
+    },
+    {
+      key: "life",
+      title: "Life expectancy (years)",
+      indicator: "SP.DYN.LE00.IN",
+      color: "#7BDFF2",
+      kind: "area",
+    },
+  ],
+  economy: [
+    {
+      key: "gdp_g",
+      title: "GDP growth (%)",
+      indicator: "NY.GDP.MKTP.KD.ZG",
+      color: "#F4D35E",
+      kind: "bars",
+      format: "percent",
+    },
+    {
+      key: "gdp_pc",
+      title: "GDP per capita (US$)",
+      indicator: "NY.GDP.PCAP.CD",
+      color: "#E8A87C",
+      kind: "area",
+      format: "compact",
+    },
+  ],
+  government: [
+    {
+      key: "tax",
+      title: "Tax revenue (% of GDP)",
+      indicator: "GC.TAX.TOTL.GD.ZS",
+      color: "#E8A87C",
+      kind: "area",
+      format: "percent",
+    },
+    {
+      key: "debt",
+      title: "Central government debt (% of GDP)",
+      indicator: "GC.DOD.TOTL.GD.ZS",
+      color: "#FF6B6B",
+      kind: "area",
+      format: "percent",
+    },
+  ],
+  health: [
+    {
+      key: "mort",
+      title: "Under-5 mortality (per 1,000)",
+      indicator: "SH.DYN.MORT",
+      color: "#41B3A3",
+      kind: "area",
+    },
+    {
+      key: "hexp",
+      title: "Health expenditure (% of GDP)",
+      indicator: "SH.XPD.CHEX.GD.ZS",
+      color: "#CDB4DB",
+      kind: "bars",
+      format: "percent",
+    },
+  ],
+  education: [
+    {
+      key: "sec",
+      title: "Secondary enrollment (%)",
+      indicator: "SE.SEC.ENRR",
+      color: "#7BDFF2",
+      kind: "area",
+      format: "percent",
+    },
+    {
+      key: "tert",
+      title: "Tertiary enrollment (%)",
+      indicator: "SE.TER.ENRR",
+      color: "#4CC9F0",
+      kind: "area",
+      format: "percent",
+    },
+  ],
+  energy: [
+    {
+      key: "access",
+      title: "Electricity access (%)",
+      indicator: "EG.ELC.ACCS.ZS",
+      color: "#FF9F1C",
+      kind: "area",
+      format: "percent",
+    },
+    {
+      key: "renew",
+      title: "Renewable energy share (%)",
+      indicator: "EG.FEC.RNEW.ZS",
+      color: "#90BE6D",
+      kind: "bars",
+      format: "percent",
+    },
+  ],
+  environment: [
+    {
+      key: "co2",
+      title: "CO₂ emissions (t per person)",
+      indicator: "EN.ATM.CO2E.PC",
+      color: "#2EC4B6",
+      kind: "area",
+    },
+    {
+      key: "forest",
+      title: "Forest area (% of land)",
+      indicator: "AG.LND.FRST.ZS",
+      color: "#B5E48C",
+      kind: "area",
+      format: "percent",
+    },
+  ],
+  digital: [
+    {
+      key: "internet",
+      title: "Internet users (%)",
+      indicator: "IT.NET.USER.ZS",
+      color: "#4CC9F0",
+      kind: "area",
+      format: "percent",
+    },
+    {
+      key: "mobile",
+      title: "Mobile subscriptions (per 100)",
+      indicator: "IT.CEL.SETS.P2",
+      color: "#F72585",
+      kind: "area",
+    },
+  ],
+  tourism: [
+    {
+      key: "arrivals",
+      title: "International arrivals",
+      indicator: "ST.INT.ARVL",
+      color: "#CDB4DB",
+      kind: "area",
+      format: "compact",
+    },
+  ],
+  agriculture: [
+    {
+      key: "cereal",
+      title: "Cereal production (metric tons)",
+      indicator: "AG.PRD.CREL.MT",
+      color: "#B5E48C",
+      kind: "area",
+      format: "compact",
+    },
+    {
+      key: "agland",
+      title: "Agricultural land (%)",
+      indicator: "AG.LND.AGRI.ZS",
+      color: "#90BE6D",
+      kind: "bars",
+      format: "percent",
+    },
+  ],
+  migration: [
+    {
+      key: "remit",
+      title: "Remittances received (US$)",
+      indicator: "BX.TRF.PWKR.CD.DT",
+      color: "#F72585",
+      kind: "area",
+      format: "compact",
+    },
+  ],
+  transport: [
+    {
+      key: "air",
+      title: "Air passengers",
+      indicator: "IS.AIR.PSGR",
+      color: "#90BE6D",
+      kind: "area",
+      format: "compact",
+    },
   ],
 };
+
+export type DomainChartData = ChartSeriesDef & { points: WbSeriesPoint[] };
 
 async function fetchIndicatorMetric(
   iso3: string,
@@ -347,22 +551,19 @@ async function fetchIndicatorMetric(
   };
 }
 
-/** Nepal keeps curated seed metrics; other countries use World Bank indicators. */
+/** Live World Bank metrics for any country + domain. */
 export async function getCountryDomainMetrics(
   domain: DomainId,
   country: Country,
 ): Promise<Metric[]> {
-  if (country.code === "np") {
-    return DOMAIN_METRICS[domain] ?? [];
-  }
-
   const defs = DOMAIN_INDICATORS[domain];
   if (!defs?.length) {
-    // Registry basics for domains without WB series (places/news)
-    if (domain === "places" || domain === "news") return [];
+    if (domain === "places" || domain === "news" || domain === "disasters") {
+      return [];
+    }
     const now = new Date().toISOString();
     const pop = await fetchWorldBankPopulation(country.iso3);
-    const base: Metric[] = [
+    return [
       {
         key: "population",
         label: "Population",
@@ -383,11 +584,10 @@ export async function getCountryDomainMetrics(
         format: "compact",
       },
     ];
-    return base;
   }
 
   return cachedFetch(
-    `domain-metrics-${country.code}-${domain}`,
+    `domain-metrics-v2-${country.code}-${domain}`,
     12 * 60 * 60 * 1000,
     async () => {
       const now = new Date().toISOString();
@@ -395,6 +595,33 @@ export async function getCountryDomainMetrics(
         defs.map((d) => fetchIndicatorMetric(country.iso3, d, now)),
       );
       return results.filter((m): m is Metric => m != null);
+    },
+  ).catch(() => []);
+}
+
+/** Time-series for domain chart panels. */
+export async function getDomainCharts(
+  domain: DomainId,
+  country: Country,
+): Promise<DomainChartData[]> {
+  const defs = DOMAIN_CHARTS[domain];
+  if (!defs?.length) return [];
+
+  return cachedFetch(
+    `domain-charts-v1-${country.code}-${domain}`,
+    12 * 60 * 60 * 1000,
+    async () => {
+      const settled = await Promise.all(
+        defs.map(async (d) => {
+          const points = await fetchWorldBankSeries(
+            country.iso3,
+            d.indicator,
+            20,
+          );
+          return { ...d, points };
+        }),
+      );
+      return settled.filter((s) => s.points.length >= 2);
     },
   ).catch(() => []);
 }

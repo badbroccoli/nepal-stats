@@ -16,7 +16,7 @@ export async function GET(
   }
   const { searchParams } = new URL(req.url);
   const raw = (searchParams.get("country") || "np").toLowerCase();
-  const code = isCountryCode(raw) ? raw : "np";
+  const code = isCountryCode(raw) ? raw : "us";
   const country = getCountry(code)!;
   const meta = domainsFor(code).find((d) => d.id === domain)!;
   const metrics = await getCountryDomainMetrics(domain as DomainId, country);

@@ -8,38 +8,16 @@ import {
 } from "maplibre-gl";
 import type { Country } from "@/lib/countries";
 import type { DisasterIncident, QuakeEvent } from "@/lib/types";
-import { NepalMap } from "./NepalMap";
 
 export function CountryMap({
   country,
   quakes = [],
-  incidents = [],
   height = "520px",
 }: {
   country: Country;
   quakes?: QuakeEvent[];
   incidents?: DisasterIncident[];
   height?: string;
-}) {
-  if (country.code === "np") {
-    return (
-      <NepalMap quakes={quakes} incidents={incidents} height={height} />
-    );
-  }
-
-  return (
-    <GenericCountryMap country={country} quakes={quakes} height={height} />
-  );
-}
-
-function GenericCountryMap({
-  country,
-  quakes,
-  height,
-}: {
-  country: Country;
-  quakes: QuakeEvent[];
-  height: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -94,8 +72,6 @@ function GenericCountryMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || status !== "ready") return;
-    // Clear previous markers layer-ish by re-adding simple markers via DOM —
-    // keep it light: only show up to 20 quakes.
     const markers: Marker[] = [];
     for (const q of quakes.slice(0, 20)) {
       const el = document.createElement("div");
@@ -105,7 +81,9 @@ function GenericCountryMap({
       el.style.background = "#ff6b6b";
       el.style.boxShadow = "0 0 0 3px rgba(255,107,107,0.25)";
       el.title = `M${q.mag} · ${q.place}`;
-      markers.push(new Marker({ element: el }).setLngLat([q.lon, q.lat]).addTo(map));
+      markers.push(
+        new Marker({ element: el }).setLngLat([q.lon, q.lat]).addTo(map),
+      );
     }
     return () => {
       markers.forEach((m) => m.remove());

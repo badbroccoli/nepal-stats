@@ -2,8 +2,10 @@ import { DomainCards, SourceStamp } from "@/components/SectionHeader";
 import { KpiCard } from "@/components/KpiCard";
 import { CountryMap } from "@/components/CountryMap";
 import { NewsRail } from "@/components/NewsRail";
+import { OfficialSourcesPanel } from "@/components/OfficialSourcesPanel";
 import { PopulationTicker } from "@/components/PopulationTicker";
 import type { Country } from "@/lib/countries";
+import { preferredPopulationSource } from "@/lib/countrySources";
 import type { PulsePayload } from "@/lib/types";
 import { formatNumber, timeAgo } from "@/lib/format";
 import Link from "next/link";
@@ -16,6 +18,13 @@ export function CountryPulseView({
   pulse: PulsePayload;
 }) {
   const [pop, ...rest] = pulse.metrics;
+  const preferred = preferredPopulationSource(country.code);
+  const activeConnectors = [
+    preferred,
+    "worldbank",
+    "usgs",
+    "frankfurter",
+  ].filter(Boolean) as string[];
 
   return (
     <div className="space-y-8">
@@ -24,11 +33,7 @@ export function CountryPulseView({
           estimate={pulse.populationEstimate}
           census={country.population ?? Math.round(pulse.populationEstimate)}
           countryName={country.name}
-          sourceLabel={
-            country.code === "np"
-              ? `Interpolated from NSO NPHC 2021 baseline (${formatNumber(country.population ?? Math.round(pulse.populationEstimate))}) with a documented growth model — not an official live census counter.`
-              : `World Bank / registry baseline (${formatNumber(Math.round(pulse.populationEstimate))}) with a simple growth animation — not an official live census counter.`
-          }
+          sourceLabel={`${pop?.source ?? "Official / World Bank"} baseline (${formatNumber(Math.round(pulse.populationEstimate))}) with a simple growth animation — not an official live census counter.`}
         />
         <div className="panel flex flex-col justify-between rounded-sm p-5">
           <div>
@@ -49,8 +54,8 @@ export function CountryPulseView({
             <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
               Live markets, hazards, and headlines
               {country.capital ? ` — capital ${country.capital}` : ""}
-              {country.region ? ` · ${country.region}` : ""}. Domain pages reuse
-              the same national model for every country.
+              {country.region ? ` · ${country.region}` : ""}. Figures prefer
+              national statistical offices when available.
             </p>
           </div>
           <div className="mt-6 flex flex-wrap gap-3 text-xs text-[var(--muted)]">
@@ -85,14 +90,7 @@ export function CountryPulseView({
           />
         </div>
         <div className="h-[520px] min-h-0">
-          <NewsRail
-            items={pulse.news}
-            title={
-              country.code === "np"
-                ? "Live Nepali news"
-                : `Live ${country.name} news`
-            }
-          />
+          <NewsRail items={pulse.news} title={`Live ${country.name} news`} />
         </div>
       </section>
 
@@ -173,6 +171,12 @@ export function CountryPulseView({
           </ul>
         </div>
       </section>
+
+      <OfficialSourcesPanel
+        countryCode={country.code}
+        countryName={country.name}
+        activeConnectors={activeConnectors}
+      />
 
       <DomainCards domains={pulse.domains} />
       <SourceStamp />
