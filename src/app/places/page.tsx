@@ -17,7 +17,7 @@ export default async function PlacesPage() {
       <SectionHeader
         title="Places"
         titleNp="स्थानहरू"
-        blurb="District population choropleth with multi-hazard markers (floods, landslides, fire, quakes, and more). Hover or click districts and dots for population, density, and incident details."
+        blurb="Zoomable district choropleth — scroll or use +/− for more labels, headquarters, and hazard captions. Drag to pan; click districts and dots for full details."
       />
       <NepalMap incidents={incidents} quakes={quakes} height="640px" />
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
