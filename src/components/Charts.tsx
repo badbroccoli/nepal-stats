@@ -10,6 +10,7 @@ import {
   YAxis,
   Area,
   AreaChart,
+  ReferenceLine,
 } from "recharts";
 import { formatCompact, formatNumber } from "@/lib/format";
 
@@ -21,9 +22,25 @@ const tooltipStyle = {
 };
 
 function formatAxis(v: number, format?: "number" | "compact" | "percent") {
+  if (!Number.isFinite(v)) return "";
   if (format === "percent") return `${formatNumber(v, 1)}%`;
   if (format === "compact") return formatCompact(v);
-  return formatNumber(v, v >= 100 ? 0 : 1);
+  return formatNumber(v, Math.abs(v) >= 100 ? 0 : 1);
+}
+
+function yDomain(data: Record<string, string | number>[], yKey: string) {
+  const vals = data
+    .map((d) => Number(d[yKey]))
+    .filter((n) => Number.isFinite(n));
+  if (!vals.length) return [0, 1] as [number, number];
+  const min = Math.min(...vals, 0);
+  const max = Math.max(...vals);
+  if (min === max) {
+    const pad = Math.abs(max) * 0.1 || 1;
+    return [min - pad, max + pad] as [number, number];
+  }
+  const pad = (max - min) * 0.08;
+  return [min - (min < 0 ? pad : 0), max + pad] as [number, number];
 }
 
 export function SimpleBars({
@@ -39,22 +56,31 @@ export function SimpleBars({
   color?: string;
   format?: "number" | "compact" | "percent";
 }) {
+  const domain = yDomain(data, yKey);
   return (
-    <div className="panel h-72 rounded-sm p-3">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data}>
+    <div className="panel rounded-sm p-3" style={{ height: 288 }}>
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="#222" vertical={false} />
-          <XAxis dataKey={xKey} stroke="#666" tick={{ fontSize: 11 }} />
+          <XAxis
+            dataKey={xKey}
+            stroke="#666"
+            tick={{ fontSize: 10 }}
+            interval="preserveStartEnd"
+            minTickGap={16}
+          />
           <YAxis
             stroke="#666"
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 10 }}
             tickFormatter={(v) => formatAxis(Number(v), format)}
-            width={56}
+            width={58}
+            domain={domain}
           />
           <Tooltip
             contentStyle={tooltipStyle}
             formatter={(v) => formatAxis(Number(v), format)}
           />
+          <ReferenceLine y={0} stroke="#444" />
           <Bar dataKey={yKey} fill={color} radius={[2, 2, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -77,10 +103,11 @@ export function SimpleArea({
   gradientId?: string;
   format?: "number" | "compact" | "percent";
 }) {
+  const domain = yDomain(data, yKey);
   return (
-    <div className="panel h-72 rounded-sm p-3">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
+    <div className="panel rounded-sm p-3" style={{ height: 288 }}>
+      <ResponsiveContainer width="100%" height={260}>
+        <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity={0.45} />
@@ -88,12 +115,19 @@ export function SimpleArea({
             </linearGradient>
           </defs>
           <CartesianGrid stroke="#222" vertical={false} />
-          <XAxis dataKey={xKey} stroke="#666" tick={{ fontSize: 11 }} />
+          <XAxis
+            dataKey={xKey}
+            stroke="#666"
+            tick={{ fontSize: 10 }}
+            interval="preserveStartEnd"
+            minTickGap={16}
+          />
           <YAxis
             stroke="#666"
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 10 }}
             tickFormatter={(v) => formatAxis(Number(v), format)}
-            width={56}
+            width={58}
+            domain={domain}
           />
           <Tooltip
             contentStyle={tooltipStyle}
@@ -104,6 +138,8 @@ export function SimpleArea({
             dataKey={yKey}
             stroke={color}
             fill={`url(#${gradientId})`}
+            strokeWidth={2}
+            isAnimationActive={false}
           />
         </AreaChart>
       </ResponsiveContainer>
