@@ -163,13 +163,13 @@ function toMarkers(
 function detailLevel(scale: number) {
   return {
     showMajorLabels: true,
-    showMediumLabels: scale >= 1.7,
-    showAllLabels: scale >= 2.6,
-    showHqDots: scale >= 3.2,
-    showHqLabels: scale >= 4.2,
-    showPopChips: scale >= 5.2,
-    showHazardCaptions: scale >= 2.0,
-    showHazardDepth: scale >= 4.0,
+    showMediumLabels: scale >= 1.35,
+    showAllLabels: scale >= 2.0,
+    showHqDots: scale >= 2.5,
+    showHqLabels: scale >= 3.4,
+    showPopChips: scale >= 4.5,
+    showHazardCaptions: scale >= 1.5,
+    showHazardDepth: scale >= 3.2,
   };
 }
 
@@ -242,6 +242,8 @@ export function SvgNepalMap({
   }, [geo, bbox]);
 
   const visibleLabels = useMemo(() => {
+    // Once HQ names appear, drop district name labels to reduce collision.
+    if (levels.showHqLabels) return [] as DistrictPath[];
     return paths
       .filter((p) => {
         if (levels.showAllLabels) return true;
@@ -249,7 +251,12 @@ export function SvgNepalMap({
         return p.population >= 250_000;
       })
       .sort((a, b) => b.population - a.population);
-  }, [paths, levels.showAllLabels, levels.showMediumLabels]);
+  }, [
+    paths,
+    levels.showAllLabels,
+    levels.showMediumLabels,
+    levels.showHqLabels,
+  ]);
 
   const hazardDots = useMemo(() => {
     return toMarkers(incidents, quakes).map((m) => {
@@ -259,6 +266,23 @@ export function SvgNepalMap({
     });
   }, [incidents, quakes, bbox]);
 
+  const captionHazards = useMemo(() => {
+    if (!levels.showHazardCaptions) return [] as HazardDot[];
+    // Prefer quakes / higher-mag, then cap count so labels stay readable.
+    const ranked = [...hazardDots].sort((a, b) => (b.mag ?? 0) - (a.mag ?? 0));
+    const limit = levels.showHqLabels ? 12 : levels.showAllLabels ? 24 : 40;
+    return ranked.slice(0, limit);
+  }, [
+    hazardDots,
+    levels.showHazardCaptions,
+    levels.showHqLabels,
+    levels.showAllLabels,
+  ]);
+
+  const captionIds = useMemo(
+    () => new Set(captionHazards.map((h) => h.id)),
+    [captionHazards],
+  );
   const applyZoom = useCallback((factor: number, cx: number, cy: number) => {
     setView((prev) => zoomAt(prev, factor, cx, cy));
   }, []);
@@ -444,7 +468,7 @@ export function SvgNepalMap({
                     {p.hq}
                   </text>
                 )}
-                {levels.showPopChips && (
+                {levels.showPopChips && p.population >= 200_000 && (
                   <text
                     x={p.cx}
                     y={p.cy - 9 * inv}
@@ -456,71 +480,77 @@ export function SvgNepalMap({
                     strokeWidth={1.4 * inv}
                     paintOrder="stroke"
                   >
-                    {formatCompact(p.population)} · {formatCompact(p.density)}
-                    /km²
+                    {formatCompact(p.population)}
                   </text>
                 )}
               </g>
             ))}
 
-          {hazardDots.map((h) => (
-            <g
-              key={h.id}
-              className="cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (didDragRef.current) return;
-                setSelected(null);
-                setSelectedHazard(h);
-              }}
-            >
-              <circle
-                cx={h.x}
-                cy={h.y}
-                r={h.r * 2.2 * inv}
-                fill="url(#hazard-glow)"
-              />
-              <circle
-                cx={h.x}
-                cy={h.y}
-                r={Math.max(3, h.r) * inv}
-                fill={h.hazardColor || "#ff6b6b"}
-                stroke="#1a0808"
-                strokeWidth={1.2 * inv}
-              />
-              {levels.showHazardCaptions && (
-                <text
-                  x={h.x}
-                  y={h.y - (h.r + 5) * inv}
-                  textAnchor="middle"
-                  fill="#ffe8e8"
-                  fontSize={labelFontSize(view.scale, 8)}
-                  fontFamily="var(--font-mono), monospace"
-                  className="pointer-events-none"
+          {hazardDots.map((h) => {
+            const showCaption = captionIds.has(h.id);
+            const caption =
+              h.mag != null
+                ? `M${h.mag.toFixed(1)}`
+                : h.hazard.length > 10
+                  ? `${h.hazard.slice(0, 9)}…`
+                  : h.hazard;
+            return (
+              <g
+                key={h.id}
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (didDragRef.current) return;
+                  setSelected(null);
+                  setSelectedHazard(h);
+                }}
+              >
+                <circle
+                  cx={h.x}
+                  cy={h.y}
+                  r={h.r * 2.2 * inv}
+                  fill="url(#hazard-glow)"
+                />
+                <circle
+                  cx={h.x}
+                  cy={h.y}
+                  r={Math.max(3, h.r) * inv}
+                  fill={h.hazardColor || "#ff6b6b"}
                   stroke="#1a0808"
-                  strokeWidth={1.6 * inv}
-                  paintOrder="stroke"
-                >
-                  {h.mag != null
-                    ? `M${h.mag.toFixed(1)}`
-                    : h.hazard.slice(0, 10)}
-                </text>
-              )}
-              {levels.showHazardDepth && h.depth != null && (
-                <text
-                  x={h.x}
-                  y={h.y + (h.r + 10) * inv}
-                  textAnchor="middle"
-                  fill="#c8a0a0"
-                  fontSize={labelFontSize(view.scale, 7)}
-                  fontFamily="var(--font-mono), monospace"
-                  className="pointer-events-none"
-                >
-                  {h.depth.toFixed(0)} km
-                </text>
-              )}
-            </g>
-          ))}
+                  strokeWidth={1.2 * inv}
+                />
+                {showCaption && (
+                  <text
+                    x={h.x}
+                    y={h.y - (h.r + 5) * inv}
+                    textAnchor="middle"
+                    fill="#ffe8e8"
+                    fontSize={labelFontSize(view.scale, 8)}
+                    fontFamily="var(--font-mono), monospace"
+                    className="pointer-events-none"
+                    stroke="#1a0808"
+                    strokeWidth={1.6 * inv}
+                    paintOrder="stroke"
+                  >
+                    {caption}
+                  </text>
+                )}
+                {levels.showHazardDepth && showCaption && h.depth != null && (
+                  <text
+                    x={h.x}
+                    y={h.y + (h.r + 10) * inv}
+                    textAnchor="middle"
+                    fill="#c8a0a0"
+                    fontSize={labelFontSize(view.scale, 7)}
+                    fontFamily="var(--font-mono), monospace"
+                    className="pointer-events-none"
+                  >
+                    {h.depth.toFixed(0)} km
+                  </text>
+                )}
+              </g>
+            );
+          })}
         </g>
       </svg>
 
@@ -528,7 +558,11 @@ export function SvgNepalMap({
         <button
           type="button"
           className="px-3 py-1.5 text-white hover:bg-[#122018]"
-          onClick={() => zoomButton(ZOOM_STEP)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            zoomButton(ZOOM_STEP);
+          }}
           aria-label="Zoom in"
         >
           +
@@ -536,7 +570,11 @@ export function SvgNepalMap({
         <button
           type="button"
           className="border-t border-[#2a3a30] px-3 py-1.5 text-white hover:bg-[#122018]"
-          onClick={() => zoomButton(1 / ZOOM_STEP)}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            zoomButton(1 / ZOOM_STEP);
+          }}
           aria-label="Zoom out"
         >
           −
@@ -544,7 +582,11 @@ export function SvgNepalMap({
         <button
           type="button"
           className="border-t border-[#2a3a30] px-3 py-1.5 text-[10px] uppercase tracking-wider text-[var(--muted)] hover:bg-[#122018] hover:text-white"
-          onClick={resetView}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resetView();
+          }}
           aria-label="Reset map view"
         >
           Reset
