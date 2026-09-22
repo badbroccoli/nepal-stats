@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
+import {
+  GeoJSONSource,
+  Map as MapLibreMap,
+  MapLayerMouseEvent,
+  NavigationControl,
+  Popup,
+  ScaleControl,
+} from "maplibre-gl";
 import { PROVINCE_NAMES } from "@/lib/domains";
 import { formatCompact, formatNumber, timeAgo } from "@/lib/format";
 import {
@@ -12,7 +19,7 @@ import {
   titleCaseHq,
 } from "@/lib/geo";
 import { CENSUS_POPULATION_2021, DISTRICT_POPULATION } from "@/lib/seed/metrics";
-import type { QuakeEvent } from "@/lib/types";
+import type { DisasterIncident, QuakeEvent } from "@/lib/types";
 
 type DistrictHover = {
   name: string;
@@ -26,23 +33,6 @@ type DistrictHover = {
   y: number;
 };
 
-type QuakeSelection = {
-  id: string;
-  mag: number;
-  place: string;
-  depth: number;
-  time: string;
-  lat: number;
-  lon: number;
-  url: string;
-  magType?: string;
-  felt?: number | null;
-  tsunami?: number;
-  significance?: number;
-  status?: string;
-  title?: string;
-};
-
 type DistrictSelection = {
   name: string;
   population: number;
@@ -53,58 +43,142 @@ type DistrictSelection = {
   sharePct: number;
 };
 
-function quakeColor(mag: number): string {
-  if (mag >= 6) return "#ff3b3b";
-  if (mag >= 5) return "#ff6b6b";
-  if (mag >= 4) return "#ff9f43";
-  if (mag >= 3) return "#f4d35e";
-  return "#7bdff2";
+type HazardSelection = DisasterIncident & {
+  magType?: string;
+  felt?: number | null;
+  tsunami?: number;
+  significance?: number;
+  status?: string;
+  place?: string;
+};
+
+function toMarkers(
+  incidents: DisasterIncident[],
+  quakes: QuakeEvent[],
+): DisasterIncident[] {
+  if (incidents.length) return incidents;
+  return quakes.map((q) => ({
+    id: `usgs-${q.id}`,
+    source: "usgs" as const,
+    hazardId: 8,
+    hazard: "Earthquake",
+    hazardColor: "#ff6b6b",
+    title: `M${q.mag} · ${q.place}`,
+    time: q.time,
+    lat: q.lat,
+    lon: q.lon,
+    url: q.url,
+    mag: q.mag,
+    depth: q.depth,
+  }));
 }
 
-function buildQuakePopupHtml(q: QuakeSelection): string {
-  const when = new Date(q.time).toLocaleString("en-NP", {
+function enrichFromQuake(
+  marker: DisasterIncident,
+  quakes: QuakeEvent[],
+): HazardSelection {
+  if (marker.source !== "usgs") return marker;
+  const rawId = marker.id.startsWith("usgs-")
+    ? marker.id.slice(5)
+    : marker.id;
+  const q = quakes.find((item) => item.id === rawId);
+  if (!q) return marker;
+  return {
+    ...marker,
+    mag: q.mag,
+    depth: q.depth,
+    url: q.url,
+    title: q.title ?? marker.title,
+    place: q.place,
+    magType: q.magType,
+    felt: q.felt,
+    tsunami: q.tsunami,
+    significance: q.significance,
+    status: q.status,
+  };
+}
+
+function hazardAccent(marker: HazardSelection): string {
+  if (marker.mag != null) {
+    if (marker.mag >= 6) return "#ff3b3b";
+    if (marker.mag >= 5) return "#ff6b6b";
+    if (marker.mag >= 4) return "#ff9f43";
+    if (marker.mag >= 3) return "#f4d35e";
+    return "#7bdff2";
+  }
+  return marker.hazardColor || "#ff6b6b";
+}
+
+function buildHazardPopupHtml(h: HazardSelection): string {
+  const when = new Date(h.time).toLocaleString("en-NP", {
     dateStyle: "medium",
     timeStyle: "short",
   });
+  const accent = hazardAccent(h);
+  const headline =
+    h.mag != null
+      ? h.magType
+        ? `M${h.mag.toFixed(1)} (${h.magType})`
+        : `M ${h.mag.toFixed(1)}`
+      : h.hazard;
   const felt =
-    q.felt != null && q.felt > 0 ? `${formatNumber(q.felt)} reports` : "none yet";
-  const magLabel = q.magType ? `M${q.mag.toFixed(1)} (${q.magType})` : `M ${q.mag.toFixed(1)}`;
+    h.felt != null && h.felt > 0 ? `${formatNumber(h.felt)} reports` : null;
+  const linkLabel =
+    h.source === "usgs" ? "USGS event details →" : "BIPAD incident →";
+
   return `
     <div class="quake-popup">
-      <div class="quake-popup__mag" style="color:${quakeColor(q.mag)}">${magLabel}</div>
-      <div class="quake-popup__place">${q.title ?? q.place}</div>
+      <div class="quake-popup__mag" style="color:${accent}">${headline}</div>
+      <div class="quake-popup__place">${h.title}</div>
       <div class="quake-popup__meta">
-        <div><span>Depth</span> ${q.depth.toFixed(1)} km</div>
+        <div><span>Hazard</span> ${h.hazard}</div>
+        ${
+          h.depth != null
+            ? `<div><span>Depth</span> ${h.depth.toFixed(1)} km</div>`
+            : ""
+        }
         <div><span>When</span> ${when}</div>
-        <div><span>Ago</span> ${timeAgo(q.time)}</div>
-        <div><span>Felt</span> ${felt}</div>
-        <div><span>Coords</span> ${q.lat.toFixed(3)}°, ${q.lon.toFixed(3)}°</div>
+        <div><span>Ago</span> ${timeAgo(h.time)}</div>
+        ${felt ? `<div><span>Felt</span> ${felt}</div>` : ""}
+        <div><span>Coords</span> ${h.lat.toFixed(3)}°, ${h.lon.toFixed(3)}°</div>
+        <div><span>Source</span> ${h.source.toUpperCase()}</div>
       </div>
-      <a class="quake-popup__link" href="${q.url}" target="_blank" rel="noopener noreferrer">USGS event details →</a>
+      ${
+        h.url
+          ? `<a class="quake-popup__link" href="${h.url}" target="_blank" rel="noopener noreferrer">${linkLabel}</a>`
+          : ""
+      }
     </div>
   `;
 }
 
 export function NepalMap({
   quakes = [],
+  incidents = [],
   height = "100%",
 }: {
   quakes?: QuakeEvent[];
+  incidents?: DisasterIncident[];
   height?: string;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const popupRef = useRef<maplibregl.Popup | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const popupRef = useRef<Popup | null>(null);
+  const quakesRef = useRef(quakes);
   const [hover, setHover] = useState<DistrictHover | null>(null);
-  const [selectedQuake, setSelectedQuake] = useState<QuakeSelection | null>(null);
+  const [selectedHazard, setSelectedHazard] = useState<HazardSelection | null>(
+    null,
+  );
   const [selectedDistrict, setSelectedDistrict] =
     useState<DistrictSelection | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
+  quakesRef.current = quakes;
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = new maplibregl.Map({
+    const map = new MapLibreMap({
       container: containerRef.current,
       style: "https://tiles.openfreemap.org/styles/dark",
       center: [84.1, 28.2],
@@ -117,11 +191,14 @@ export function NepalMap({
       ],
     });
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: true }), "top-right");
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-right");
+    map.addControl(new NavigationControl({ showCompass: true }), "top-right");
+    map.addControl(
+      new ScaleControl({ maxWidth: 120, unit: "metric" }),
+      "bottom-right",
+    );
     mapRef.current = map;
 
-    const popup = new maplibregl.Popup({
+    const popup = new Popup({
       closeButton: true,
       closeOnClick: false,
       offset: 14,
@@ -206,7 +283,6 @@ export function NepalMap({
             data: { type: "FeatureCollection", features: hqFeatures },
           });
 
-          // Sit under roads/labels so basemap detail stays readable.
           const underRoads = map.getLayer("highway_path")
             ? "highway_path"
             : map.getLayer("boundary_state")
@@ -442,7 +518,10 @@ export function NepalMap({
     map.on("mouseleave", "district-fill", () => {
       map.getCanvas().style.cursor = "";
       if (hoveredId !== undefined) {
-        map.setFeatureState({ source: "districts", id: hoveredId }, { hover: false });
+        map.setFeatureState(
+          { source: "districts", id: hoveredId },
+          { hover: false },
+        );
         hoveredId = undefined;
       }
       if (map.getLayer("district-highlight")) {
@@ -454,17 +533,17 @@ export function NepalMap({
     map.on("click", "district-fill", (e) => {
       const f = e.features?.[0];
       if (!f) return;
-      const quakeLayers = ["quake-circles", "quake-halo"].filter((id) =>
+      const hazardLayers = ["hazard-circles", "hazard-halo"].filter((id) =>
         map.getLayer(id),
       );
-      if (quakeLayers.length) {
-        const quakeHits = map.queryRenderedFeatures(e.point, {
-          layers: quakeLayers,
+      if (hazardLayers.length) {
+        const hazardHits = map.queryRenderedFeatures(e.point, {
+          layers: hazardLayers,
         });
-        if (quakeHits.length) return;
+        if (hazardHits.length) return;
       }
 
-      setSelectedQuake(null);
+      setSelectedHazard(null);
       popupRef.current?.remove();
       setSelectedDistrict({
         name: String(f.properties?.name ?? ""),
@@ -478,13 +557,13 @@ export function NepalMap({
     });
 
     map.on("click", (e) => {
-      const layers = ["quake-circles", "quake-halo", "district-fill"].filter((id) =>
-        map.getLayer(id),
+      const layers = ["hazard-circles", "hazard-halo", "district-fill"].filter(
+        (id) => map.getLayer(id),
       );
       const hits = map.queryRenderedFeatures(e.point, { layers });
       if (!hits.length) {
         setSelectedDistrict(null);
-        setSelectedQuake(null);
+        setSelectedHazard(null);
         popupRef.current?.remove();
       }
     });
@@ -502,131 +581,72 @@ export function NepalMap({
     const map = mapRef.current;
     if (!map || status !== "ready") return;
 
+    const markers = toMarkers(incidents, quakes);
     const data: GeoJSON.FeatureCollection = {
       type: "FeatureCollection",
-      features: quakes.map((q) => ({
+      features: markers.map((m) => ({
         type: "Feature",
         properties: {
-          id: q.id,
-          mag: q.mag,
-          place: q.place,
-          depth: q.depth,
-          time: q.time,
-          url: q.url,
-          lat: q.lat,
-          lon: q.lon,
-          magType: q.magType ?? "",
-          felt: q.felt ?? -1,
-          tsunami: q.tsunami ?? 0,
-          significance: q.significance ?? 0,
-          status: q.status ?? "",
-          title: q.title ?? q.place,
-          magLabel: `M${q.mag.toFixed(1)}`,
+          id: m.id,
+          source: m.source,
+          hazardId: m.hazardId,
+          hazard: m.hazard,
+          color: m.hazardColor || "#ff6b6b",
+          title: m.title,
+          time: m.time,
+          url: m.url ?? "",
+          mag: m.mag ?? -1,
+          depth: m.depth ?? -1,
+          lat: m.lat,
+          lon: m.lon,
+          radius: m.mag != null ? Math.max(5, Math.min(16, m.mag * 2.4)) : 6,
+          label:
+            m.mag != null ? `M${m.mag.toFixed(1)}` : String(m.hazard).slice(0, 10),
         },
-        geometry: { type: "Point", coordinates: [q.lon, q.lat] },
+        geometry: { type: "Point", coordinates: [m.lon, m.lat] },
       })),
     };
 
-    const existing = map.getSource("quakes") as maplibregl.GeoJSONSource | undefined;
+    const existing = map.getSource("hazards") as GeoJSONSource | undefined;
     if (existing) {
       existing.setData(data);
     } else {
-      map.addSource("quakes", { type: "geojson", data });
+      map.addSource("hazards", { type: "geojson", data });
 
       map.addLayer({
-        id: "quake-halo",
+        id: "hazard-halo",
         type: "circle",
-        source: "quakes",
+        source: "hazards",
         paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["get", "mag"],
-            2,
-            10,
-            4,
-            18,
-            6,
-            30,
-            7,
-            40,
-          ],
-          "circle-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "mag"],
-            2,
-            "#7bdff2",
-            3.5,
-            "#f4d35e",
-            4.5,
-            "#ff9f43",
-            5.5,
-            "#ff6b6b",
-            6.5,
-            "#ff3b3b",
-          ],
-          "circle-opacity": 0.18,
+          "circle-radius": ["+", ["get", "radius"], 8],
+          "circle-color": ["get", "color"],
+          "circle-opacity": 0.16,
           "circle-stroke-width": 1,
-          "circle-stroke-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "mag"],
-            2,
-            "#7bdff2",
-            5,
-            "#ff6b6b",
-          ],
-          "circle-stroke-opacity": 0.45,
+          "circle-stroke-color": ["get", "color"],
+          "circle-stroke-opacity": 0.4,
         },
       });
 
       map.addLayer({
-        id: "quake-circles",
+        id: "hazard-circles",
         type: "circle",
-        source: "quakes",
+        source: "hazards",
         paint: {
-          "circle-radius": [
-            "interpolate",
-            ["linear"],
-            ["get", "mag"],
-            2,
-            4,
-            4,
-            7,
-            5.5,
-            11,
-            7,
-            16,
-          ],
-          "circle-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "mag"],
-            2,
-            "#7bdff2",
-            3.5,
-            "#f4d35e",
-            4.5,
-            "#ff9f43",
-            5.5,
-            "#ff6b6b",
-            6.5,
-            "#ff3b3b",
-          ],
-          "circle-opacity": 0.92,
-          "circle-stroke-width": 1.5,
-          "circle-stroke-color": "#1a0808",
+          "circle-radius": ["get", "radius"],
+          "circle-color": ["get", "color"],
+          "circle-opacity": 0.9,
+          "circle-stroke-width": 1.4,
+          "circle-stroke-color": "#120808",
         },
       });
 
       map.addLayer({
-        id: "quake-labels",
+        id: "hazard-labels",
         type: "symbol",
-        source: "quakes",
+        source: "hazards",
         minzoom: 6.8,
         layout: {
-          "text-field": ["get", "magLabel"],
+          "text-field": ["get", "label"],
           "text-size": 10,
           "text-font": ["Noto Sans Regular"],
           "text-offset": [0, -1.35],
@@ -648,52 +668,56 @@ export function NepalMap({
       map.getCanvas().style.cursor = "";
     };
 
-    const onClick = (e: maplibregl.MapLayerMouseEvent) => {
+    const onClick = (e: MapLayerMouseEvent) => {
       const f = e.features?.[0];
       if (!f || !f.geometry || f.geometry.type !== "Point") return;
       const props = f.properties ?? {};
-      const selection: QuakeSelection = {
+      const base: DisasterIncident = {
         id: String(props.id ?? ""),
-        mag: Number(props.mag ?? 0),
-        place: String(props.place ?? ""),
-        depth: Number(props.depth ?? 0),
+        source: (String(props.source ?? "bipad") as "bipad" | "usgs"),
+        hazardId: Number(props.hazardId ?? 0),
+        hazard: String(props.hazard ?? "Hazard"),
+        hazardColor: String(props.color ?? "#ff6b6b"),
+        title: String(props.title ?? ""),
         time: String(props.time ?? new Date().toISOString()),
         lat: Number(props.lat ?? f.geometry.coordinates[1]),
         lon: Number(props.lon ?? f.geometry.coordinates[0]),
-        url: String(props.url ?? "#"),
-        magType: String(props.magType || "") || undefined,
-        felt: Number(props.felt) >= 0 ? Number(props.felt) : null,
-        tsunami: Number(props.tsunami ?? 0),
-        significance: Number(props.significance ?? 0),
-        status: String(props.status || "") || undefined,
-        title: String(props.title || props.place || ""),
+        url: String(props.url || "") || undefined,
+        mag: Number(props.mag) >= 0 ? Number(props.mag) : undefined,
+        depth: Number(props.depth) >= 0 ? Number(props.depth) : undefined,
       };
+      const selection = enrichFromQuake(base, quakesRef.current);
       setSelectedDistrict(null);
-      setSelectedQuake(selection);
+      setSelectedHazard(selection);
       popupRef.current
         ?.setLngLat(f.geometry.coordinates as [number, number])
-        .setHTML(buildQuakePopupHtml(selection))
+        .setHTML(buildHazardPopupHtml(selection))
         .addTo(map);
     };
 
-    map.on("mouseenter", "quake-circles", onEnter);
-    map.on("mouseleave", "quake-circles", onLeave);
-    map.on("click", "quake-circles", onClick);
-    map.on("click", "quake-halo", onClick);
+    map.on("mouseenter", "hazard-circles", onEnter);
+    map.on("mouseleave", "hazard-circles", onLeave);
+    map.on("click", "hazard-circles", onClick);
+    map.on("click", "hazard-halo", onClick);
 
     return () => {
-      map.off("mouseenter", "quake-circles", onEnter);
-      map.off("mouseleave", "quake-circles", onLeave);
-      map.off("click", "quake-circles", onClick);
-      map.off("click", "quake-halo", onClick);
+      map.off("mouseenter", "hazard-circles", onEnter);
+      map.off("mouseleave", "hazard-circles", onLeave);
+      map.off("click", "hazard-circles", onClick);
+      map.off("click", "hazard-halo", onClick);
     };
-  }, [quakes, status]);
+  }, [incidents, quakes, status]);
 
-  const detail = selectedQuake
-    ? ("quake" as const)
+  const detail = selectedHazard
+    ? ("hazard" as const)
     : selectedDistrict
       ? ("district" as const)
       : null;
+
+  const legend =
+    incidents.length > 0
+      ? "Population · multi-hazard markers"
+      : "Population · earthquake markers";
 
   return (
     <div className="panel relative overflow-hidden rounded-sm" style={{ height }}>
@@ -706,7 +730,7 @@ export function NepalMap({
         </div>
       )}
 
-      {hover && !selectedQuake && (
+      {hover && !selectedHazard && (
         <div
           className="pointer-events-none absolute z-20 max-w-[220px] rounded border border-[#333] bg-[#0d0d0d]/95 px-2.5 py-2 text-xs shadow-lg backdrop-blur-sm"
           style={{ left: hover.x + 14, top: hover.y + 14 }}
@@ -728,99 +752,117 @@ export function NepalMap({
         </div>
       )}
 
-      {detail === "quake" && selectedQuake && (
+      {detail === "hazard" && selectedHazard && (
         <aside className="map-detail-panel absolute top-3 left-3 z-20 w-[min(280px,calc(100%-1.5rem))] rounded border border-[#3a2222] bg-[#100808]/92 p-3 text-xs shadow-lg backdrop-blur-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
               <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--muted)]">
-                Earthquake
+                {selectedHazard.hazard}
               </div>
               <div
                 className="display mt-1 text-2xl"
-                style={{ color: quakeColor(selectedQuake.mag) }}
+                style={{ color: hazardAccent(selectedHazard) }}
               >
-                M {selectedQuake.mag.toFixed(1)}
-                {selectedQuake.magType ? (
-                  <span className="ml-2 text-sm text-[var(--muted)]">
-                    {selectedQuake.magType}
-                  </span>
-                ) : null}
+                {selectedHazard.mag != null ? (
+                  <>
+                    M {selectedHazard.mag.toFixed(1)}
+                    {selectedHazard.magType ? (
+                      <span className="ml-2 text-sm text-[var(--muted)]">
+                        {selectedHazard.magType}
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  selectedHazard.hazard
+                )}
               </div>
             </div>
             <button
               type="button"
               className="text-[var(--muted)] hover:text-white"
               onClick={() => {
-                setSelectedQuake(null);
+                setSelectedHazard(null);
                 popupRef.current?.remove();
               }}
-              aria-label="Close quake details"
+              aria-label="Close hazard details"
             >
               ✕
             </button>
           </div>
           <p className="mt-2 leading-snug text-[var(--text)]">
-            {selectedQuake.title ?? selectedQuake.place}
+            {selectedHazard.title}
           </p>
           <dl className="mono mt-3 space-y-1.5 text-[11px]">
             <div className="flex justify-between gap-3">
-              <dt className="text-[var(--muted)]">Magnitude type</dt>
-              <dd>{selectedQuake.magType || "—"}</dd>
+              <dt className="text-[var(--muted)]">Source</dt>
+              <dd className="uppercase">{selectedHazard.source}</dd>
             </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-[var(--muted)]">Depth</dt>
-              <dd>{selectedQuake.depth.toFixed(1)} km</dd>
-            </div>
+            {selectedHazard.depth != null && (
+              <div className="flex justify-between gap-3">
+                <dt className="text-[var(--muted)]">Depth</dt>
+                <dd>{selectedHazard.depth.toFixed(1)} km</dd>
+              </div>
+            )}
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--muted)]">Occurred</dt>
-              <dd>{timeAgo(selectedQuake.time)}</dd>
+              <dd>{timeAgo(selectedHazard.time)}</dd>
             </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-[var(--muted)]">Felt reports</dt>
-              <dd>
-                {selectedQuake.felt != null && selectedQuake.felt > 0
-                  ? formatNumber(selectedQuake.felt)
-                  : "none yet"}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-[var(--muted)]">Significance</dt>
-              <dd>{selectedQuake.significance ?? "—"}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-[var(--muted)]">Tsunami alert</dt>
-              <dd>{selectedQuake.tsunami ? "Yes" : "No"}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-[var(--muted)]">Review status</dt>
-              <dd className="capitalize">{selectedQuake.status || "—"}</dd>
-            </div>
+            {selectedHazard.source === "usgs" && (
+              <>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--muted)]">Felt reports</dt>
+                  <dd>
+                    {selectedHazard.felt != null && selectedHazard.felt > 0
+                      ? formatNumber(selectedHazard.felt)
+                      : "none yet"}
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--muted)]">Significance</dt>
+                  <dd>{selectedHazard.significance ?? "—"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--muted)]">Tsunami alert</dt>
+                  <dd>{selectedHazard.tsunami ? "Yes" : "No"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-[var(--muted)]">Review status</dt>
+                  <dd className="capitalize">
+                    {selectedHazard.status || "—"}
+                  </dd>
+                </div>
+              </>
+            )}
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--muted)]">Latitude</dt>
-              <dd>{selectedQuake.lat.toFixed(3)}°</dd>
+              <dd>{selectedHazard.lat.toFixed(3)}°</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--muted)]">Longitude</dt>
-              <dd>{selectedQuake.lon.toFixed(3)}°</dd>
+              <dd>{selectedHazard.lon.toFixed(3)}°</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-[var(--muted)]">Local time</dt>
               <dd className="text-right">
-                {new Date(selectedQuake.time).toLocaleString("en-NP", {
+                {new Date(selectedHazard.time).toLocaleString("en-NP", {
                   dateStyle: "medium",
                   timeStyle: "short",
                 })}
               </dd>
             </div>
           </dl>
-          <a
-            href={selectedQuake.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-flex text-[var(--accent)] hover:underline"
-          >
-            Open USGS report →
-          </a>
+          {selectedHazard.url && (
+            <a
+              href={selectedHazard.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex text-[var(--accent)] hover:underline"
+            >
+              {selectedHazard.source === "usgs"
+                ? "Open USGS report →"
+                : "Open BIPAD incident →"}
+            </a>
+          )}
         </aside>
       )}
 
@@ -867,7 +909,7 @@ export function NepalMap({
       )}
 
       <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[240px] rounded bg-[#050505cc] px-2.5 py-2 text-[10px] text-[var(--muted)]">
-        <div className="uppercase tracking-wider">Population · earthquakes</div>
+        <div className="uppercase tracking-wider">{legend}</div>
         <div className="mt-1.5 flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-[#0d3d2c]" />
           <span className="h-2 w-2 rounded-full bg-[#1a6b4a]" />
@@ -876,15 +918,8 @@ export function NepalMap({
           <span className="h-2 w-2 rounded-full bg-[#b8ffe0]" />
           <span className="ml-1">sparse → dense</span>
         </div>
-        <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-[#7bdff2]" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[#f4d35e]" />
-          <span className="h-3 w-3 rounded-full bg-[#ff9f43]" />
-          <span className="h-3.5 w-3.5 rounded-full bg-[#ff6b6b]" />
-          <span>M2 → M6+</span>
-        </div>
         <div className="mt-1.5 normal-case tracking-normal">
-          Click a district or quake dot for full details
+          Click a district or hazard marker for full details
         </div>
       </div>
     </div>

@@ -62,7 +62,7 @@ export const DOMAINS: DomainMeta[] = [
     href: "/disasters",
     title: "Disasters & Safety",
     titleNp: "प्रकोप",
-    blurb: "Earthquakes, floods, BIPAD incidents",
+    blurb: "Floods, landslides, fire, quakes, river alerts",
     accent: "#FF6B6B",
   },
   {

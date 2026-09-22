@@ -1,7 +1,7 @@
 import type { DomainId, Metric } from "../types";
 
 /** Curated national figures from published NSO/NRB/NTB/NTA/MoHP-style releases.
- *  Live connectors overwrite FX, quakes, and news at runtime. Always show source + asOf.
+ *  Live connectors overwrite FX, quakes, BIPAD disasters, and news at runtime. Always show source + asOf.
  */
 export const CENSUS_POPULATION_2021 = 29_164_578;
 export const POP_GROWTH_RATE = 0.0092; // ~0.92% annual (UN/NSO mid-range)
@@ -527,8 +527,19 @@ export const DOMAIN_METRICS: Record<DomainId, Metric[]> = {
   ],
   disasters: [
     {
+      key: "incidents_30d",
+      label: "Natural incidents (30d)",
+      value: 0,
+      freshness: "RT",
+      source: "BIPAD / NDRRMA",
+      asOf: "live",
+      format: "number",
+      description:
+        "Flood, landslide, fire, thunderbolt, wind storm, earthquake, and other BIPAD natural hazards",
+    },
+    {
       key: "quakes_30d",
-      label: "Earthquakes (30d, Nepal bbox)",
+      label: "Earthquakes (30d, USGS bbox)",
       value: 0,
       freshness: "RT",
       source: "USGS",
@@ -537,22 +548,31 @@ export const DOMAIN_METRICS: Record<DomainId, Metric[]> = {
       description: "Filled from live USGS connector",
     },
     {
-      key: "flood_stations",
-      label: "River stations monitored",
-      value: 80,
-      freshness: "NR",
+      key: "active_alerts",
+      label: "Active hazard alerts",
+      value: 0,
+      freshness: "RT",
       source: "BIPAD / DHM",
-      asOf: "portal",
+      asOf: "live",
       format: "number",
     },
     {
-      key: "incidents_ytd",
-      label: "Hazard incidents (YTD indicative)",
-      value: 3200,
-      freshness: "NR",
-      source: "BIPAD / Nepal Police",
-      asOf: "YTD",
-      format: "compact",
+      key: "flood_stations",
+      label: "River stations monitored",
+      value: 0,
+      freshness: "RT",
+      source: "BIPAD / DHM",
+      asOf: "live",
+      format: "number",
+    },
+    {
+      key: "rivers_elevated",
+      label: "Rivers above warning/danger",
+      value: 0,
+      freshness: "RT",
+      source: "BIPAD / DHM",
+      asOf: "live",
+      format: "number",
     },
     {
       key: "landslide_season",
