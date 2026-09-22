@@ -110,23 +110,24 @@ export function NepalMap({
                   ["linear"],
                   ["get", "population"],
                   50000,
-                  "#1a2e24",
+                  "#1f4d38",
                   300000,
-                  "#2f6b4f",
+                  "#2f9e6a",
                   700000,
                   "#3ddc97",
                   1500000,
-                  "#b8f5d4",
+                  "#d4ffe8",
                 ],
-                "fill-opacity": 0.72,
+                "fill-opacity": 0.88,
               }}
             />
             <Layer
               id="district-line"
               type="line"
               paint={{
-                "line-color": "#0a0a0a",
-                "line-width": 0.6,
+                "line-color": "#9fd9b8",
+                "line-width": 0.8,
+                "line-opacity": 0.55,
               }}
             />
           </Source>
