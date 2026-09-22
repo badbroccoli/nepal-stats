@@ -215,6 +215,14 @@ export function NepalMap({
     );
     mapRef.current = map;
 
+    // Next.js layout can mount the container at 0×0; force a resize once we
+    // have dimensions, and keep following the container afterwards.
+    const ro = new ResizeObserver(() => {
+      map.resize();
+    });
+    ro.observe(containerRef.current);
+    requestAnimationFrame(() => map.resize());
+
     const popup = new Popup({
       closeButton: true,
       closeOnClick: false,
@@ -257,11 +265,21 @@ export function NepalMap({
       map.setStyle(emptyStyle);
     }, 8000);
 
+    async function fetchDistrictGeo(): Promise<FeatureCollection> {
+      try {
+        const res = await fetch("/geo/nepal-districts.geojson");
+        if (res.ok) return (await res.json()) as FeatureCollection;
+      } catch {
+        // fall through to API
+      }
+      const api = await fetch("/api/geo/districts");
+      if (!api.ok) throw new Error(String(api.status));
+      return (await api.json()) as FeatureCollection;
+    }
+
     async function loadDistricts() {
       try {
-        const res = await fetch("/api/geo/districts");
-        if (!res.ok) throw new Error(String(res.status));
-        const geo = (await res.json()) as FeatureCollection;
+        const geo = await fetchDistrictGeo();
         const hqFeatures: Feature[] = [];
         const enriched: FeatureCollection = {
           type: "FeatureCollection",
@@ -378,8 +396,8 @@ export function NepalMap({
                 "fill-opacity": [
                   "case",
                   ["boolean", ["feature-state", "hover"], false],
-                  0.55,
-                  0.28,
+                  0.72,
+                  0.5,
                 ],
               },
             },
@@ -620,6 +638,7 @@ export function NepalMap({
     return () => {
       cancelled = true;
       window.clearTimeout(styleTimeout);
+      ro.disconnect();
       popup.remove();
       popupRef.current = null;
       map.remove();

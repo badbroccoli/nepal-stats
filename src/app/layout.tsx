@@ -34,13 +34,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        {/* Load outside the Tailwind/PostCSS pipeline — MapLibre's minified CSS
-            breaks @tailwindcss/postcss when imported via globals.css. */}
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/maplibre-gl@6.10.0/dist/maplibre-gl.css"
-          crossOrigin="anonymous"
-        />
+        {/* MapLibre CSS cannot go through Tailwind/PostCSS (CssSyntaxError on
+            its minified rules). Served as a static public asset instead. */}
+        {/* eslint-disable-next-line @next/next/no-css-tags */}
+        <link rel="stylesheet" href="/vendor/maplibre-gl.css" />
       </head>
       <body
         className={`${display.variable} ${body.variable} ${mono.variable} antialiased`}
