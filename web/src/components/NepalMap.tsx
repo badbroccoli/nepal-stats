@@ -81,21 +81,14 @@ export function NepalMap({
         }}
         mapStyle={{
           version: 8,
-          sources: {
-            basemap: {
-              type: "raster",
-              tiles: [
-                "https://basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png",
-              ],
-              tileSize: 256,
-              attribution: "© CARTO © OpenStreetMap",
-            },
-          },
+          name: "nepal-dark",
+          glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+          sources: {},
           layers: [
             {
-              id: "basemap",
-              type: "raster",
-              source: "basemap",
+              id: "background",
+              type: "background",
+              paint: { "background-color": "#070807" },
             },
           ],
         }}
