@@ -5,7 +5,6 @@ One-stop dark dashboard for Nepal: national pulse, interactive district map, liv
 ## Quick start
 
 ```bash
-cd web
 npm install
 npm run dev
 ```
@@ -13,6 +12,10 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000).
 
 Optional: set `WAQI_TOKEN` for live Kathmandu AQI.
+
+## Deploy (Vercel)
+
+Import this GitHub repo. Leave **Root Directory** empty (app is at the repo root). Add `WAQI_TOKEN` if desired.
 
 ## Live connectors
 
@@ -34,8 +37,3 @@ Optional: set `WAQI_TOKEN` for live Kathmandu AQI.
 ## Stack
 
 Next.js · MapLibre · Recharts · TypeScript · Tailwind
-
-## Cloud Agent environment
-
-`.cursor/environment.json` installs `web/` deps and starts the Next.js dev server.
-
