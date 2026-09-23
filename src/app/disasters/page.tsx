@@ -1,11 +1,18 @@
 import { MetricGrid } from "@/components/KpiCard";
 import { SectionHeader, SourceStamp } from "@/components/SectionHeader";
 import { NepalMap } from "@/components/NepalMap";
+import { DonutMix } from "@/components/Charts";
+import {
+  DisasterFeed,
+  HazardMixBars,
+} from "@/components/visual/HazardVisuals";
+import { ScaleLegend } from "@/components/visual/ScaleLegend";
 import { fetchDisasterSnapshot } from "@/lib/connectors/bipad";
 import { fetchNepalEarthquakes } from "@/lib/connectors/usgs";
 import { getDomainMetrics } from "@/lib/connectors/pulse";
 import { DOMAINS } from "@/lib/domains";
 import { timeAgo } from "@/lib/format";
+import { bandAt, colorAt, SCALES } from "@/lib/scales";
 import type { DisasterIncident } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +68,7 @@ export default async function DisastersPage() {
   ].slice(0, 400);
 
   const feed = snap.incidents.slice(0, 40);
+  const totalHazards = snap.byHazard.reduce((s, h) => s + h.count, 0);
 
   return (
     <div>
@@ -68,59 +76,79 @@ export default async function DisastersPage() {
         title={meta.title}
         titleNp={meta.titleNp}
         blurb="Live BIPAD natural hazards across Nepal — floods, landslides, fire, thunderbolt, wind storm, quakes, and more — plus USGS seismicity and DHM river alerts."
+        accent={meta.accent}
       />
       <MetricGrid metrics={metrics} />
 
       {snap.byHazard.length > 0 && (
-        <div className="mt-6 panel rounded-sm p-4">
-          <h2 className="mb-3 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-            Natural hazard mix (30d)
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {snap.byHazard.map((h) => (
-              <div
-                key={h.hazard}
-                className="flex items-center gap-2 border border-[var(--border)] px-3 py-2 text-sm"
-              >
-                <span
-                  className="inline-block h-2.5 w-2.5 shrink-0"
-                  style={{ background: h.color }}
-                  aria-hidden
-                />
-                <span>{h.hazard}</span>
-                <span className="mono text-[var(--muted)]">{h.count}</span>
-              </div>
-            ))}
+        <div className="mt-8 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <div className="section-kicker mb-2">Composition</div>
+            <h2 className="display mb-3 text-xl">Hazard mix (30d)</h2>
+            <DonutMix
+              data={snap.byHazard.map((h) => ({
+                name: h.hazard,
+                value: h.count,
+                color: h.color,
+              }))}
+              centerLabel="events"
+              centerValue={String(totalHazards)}
+            />
           </div>
-          <p className="mt-3 text-[10px] text-[var(--muted)]">
-            {snap.hazards.length} BIPAD natural hazard types tracked · counts
-            capped per type for freshness
-          </p>
+          <div className="panel rounded-sm p-5">
+            <div className="section-kicker mb-2">Breakdown</div>
+            <h2 className="display mb-4 text-xl">Share by hazard type</h2>
+            <HazardMixBars
+              items={snap.byHazard.map((h) => ({
+                hazard: h.hazard,
+                count: h.count,
+                color: h.color,
+              }))}
+            />
+            <p className="mt-4 text-[10px] text-[var(--muted)]">
+              {snap.hazards.length} BIPAD natural hazard types tracked · counts
+              capped per type for freshness
+            </p>
+          </div>
         </div>
       )}
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-        <NepalMap incidents={mapIncidents} quakes={quakes} height="480px" />
+      <div className="mt-10 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        <div>
+          <div className="mb-3 flex items-end justify-between">
+            <div>
+              <div className="section-kicker">Map</div>
+              <h2 className="display mt-1 text-xl">Incidents & seismicity</h2>
+            </div>
+          </div>
+          <NepalMap incidents={mapIncidents} quakes={quakes} height="480px" />
+        </div>
         <div className="space-y-4">
           {snap.alerts.length > 0 && (
             <div className="panel rounded-sm p-4">
-              <h2 className="mb-3 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-                Active alerts
-              </h2>
+              <div className="section-kicker mb-2">Alerts</div>
+              <h2 className="display mb-3 text-lg">Active alerts</h2>
               <ul className="space-y-2 text-sm">
                 {snap.alerts.slice(0, 8).map((a) => (
-                  <li key={a.id} className="border-b border-[var(--border)] pb-2">
-                    <div className="flex items-start gap-2">
-                      <span
-                        className="mt-1 inline-block h-2 w-2 shrink-0"
-                        style={{ background: a.hazardColor }}
-                      />
-                      <div>
-                        <div>{a.title}</div>
-                        <div className="text-[10px] text-[var(--muted)]">
-                          {a.hazard} · {timeAgo(a.startedOn)}
-                          {a.expireOn ? ` · expires ${timeAgo(a.expireOn)}` : ""}
-                        </div>
+                  <li
+                    key={a.id}
+                    className="flex items-start gap-3 border-b border-[var(--border)] pb-2"
+                  >
+                    <span
+                      className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px]"
+                      style={{
+                        background: `${a.hazardColor}22`,
+                        color: a.hazardColor,
+                        boxShadow: `0 0 0 1px ${a.hazardColor}44`,
+                      }}
+                    >
+                      !!
+                    </span>
+                    <div>
+                      <div>{a.title}</div>
+                      <div className="text-[10px] text-[var(--muted)]">
+                        {a.hazard} · {timeAgo(a.startedOn)}
+                        {a.expireOn ? ` · expires ${timeAgo(a.expireOn)}` : ""}
                       </div>
                     </div>
                   </li>
@@ -130,62 +158,68 @@ export default async function DisastersPage() {
           )}
 
           <div className="panel rounded-sm p-4">
-            <h2 className="mb-3 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-              Recent natural incidents (BIPAD)
-            </h2>
-            <ul className="max-h-[420px] space-y-2 overflow-y-auto text-sm">
-              {feed.length === 0 && (
-                <li className="text-[var(--muted)]">
-                  No recent BIPAD natural incidents in the lookback window.
-                </li>
-              )}
-              {feed.map((i) => (
-                <li key={i.id} className="border-b border-[var(--border)] pb-2">
-                  <a
-                    href={i.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-2"
-                  >
-                    <span
-                      className="mt-1 inline-block h-2 w-2 shrink-0"
-                      style={{ background: i.hazardColor }}
-                      title={i.hazard}
-                    />
-                    <span>
-                      <span className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
-                        {i.hazard}
-                      </span>
-                      <div>{i.title}</div>
-                      <div className="text-[10px] text-[var(--muted)]">
-                        {timeAgo(i.time)}
-                      </div>
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <div className="section-kicker mb-2">BIPAD</div>
+            <h2 className="display mb-3 text-lg">Recent natural incidents</h2>
+            <div className="max-h-[420px] overflow-y-auto">
+              <DisasterFeed disasters={feed} />
+            </div>
           </div>
 
           <div className="panel rounded-sm p-4">
-            <h2 className="mb-3 text-xs uppercase tracking-[0.16em] text-[var(--muted)]">
-              USGS earthquakes
-            </h2>
-            <ul className="space-y-2 text-sm">
+            <div className="section-kicker mb-2">USGS</div>
+            <h2 className="display mb-3 text-lg">Earthquakes</h2>
+            <ScaleLegend
+              scale={SCALES.quake_mag}
+              value={quakes[0]?.mag ?? 3}
+              compact
+            />
+            <ul className="mt-3 space-y-2 text-sm">
               {quakes.length === 0 && (
-                <li className="text-[var(--muted)]">No recent events in bbox.</li>
-              )}
-              {quakes.slice(0, 8).map((q) => (
-                <li key={q.id} className="border-b border-[var(--border)] pb-2">
-                  <a href={q.url} target="_blank" rel="noopener noreferrer">
-                    <span className="mono text-[var(--danger)]">M{q.mag}</span>{" "}
-                    {q.place}
-                  </a>
-                  <div className="text-[10px] text-[var(--muted)]">
-                    {timeAgo(q.time)} · depth {q.depth.toFixed(1)} km
-                  </div>
+                <li className="text-[var(--muted)]">
+                  No recent events in bbox.
                 </li>
-              ))}
+              )}
+              {quakes.slice(0, 8).map((q) => {
+                const color = colorAt(SCALES.quake_mag, q.mag);
+                const band = bandAt(SCALES.quake_mag, q.mag);
+                return (
+                  <li
+                    key={q.id}
+                    className="flex items-center gap-3 border-b border-[var(--border)] pb-2"
+                  >
+                    <div
+                      className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-sm"
+                      style={{
+                        background: `${color}22`,
+                        boxShadow: `inset 0 0 0 1px ${color}66`,
+                      }}
+                    >
+                      <span
+                        className="mono text-sm leading-none"
+                        style={{ color }}
+                      >
+                        {q.mag.toFixed(1)}
+                      </span>
+                      <span className="text-[8px] uppercase text-[var(--muted)]">
+                        {band.label}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <a
+                        href={q.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="line-clamp-2 hover:text-[var(--accent)]"
+                      >
+                        {q.place}
+                      </a>
+                      <div className="text-[10px] text-[var(--muted)]">
+                        {timeAgo(q.time)} · depth {q.depth.toFixed(1)} km
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>

@@ -32,11 +32,37 @@ body {
   margin: 0;
   min-height: 100%;
   background:
-    radial-gradient(1200px 600px at 10% -10%, #122018 0%, transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, #1a1410 0%, transparent 50%),
-    var(--bg);
+    radial-gradient(1100px 520px at 8% -8%, #143024 0%, transparent 55%),
+    radial-gradient(900px 480px at 92% 4%, #1c1410 0%, transparent 52%),
+    radial-gradient(700px 400px at 50% 100%, #0a1820 0%, transparent 45%),
+    linear-gradient(180deg, #070707 0%, #050505 40%, #06080a 100%);
   color: var(--text);
   font-family: var(--font-body), "Segoe UI", sans-serif;
+}
+
+body::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(#ffffff05 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff05 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+}
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+/* Keep header above page content so cluster menus aren't covered */
+header {
+  position: relative;
+  z-index: 40;
 }
 
 a {
@@ -49,8 +75,24 @@ a {
 }
 
 .panel {
-  background: linear-gradient(180deg, #141414 0%, #0f0f0f 100%);
+  background:
+    linear-gradient(165deg, #161616ee 0%, #0f0f0fcc 55%, #0c0c0cee 100%);
   border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+}
+
+.kpi-card,
+.domain-tile,
+.chart-shell {
+  background:
+    linear-gradient(160deg, #171717f0 0%, #101010e8 100%);
+  border: 1px solid var(--border);
+}
+
+.kpi-card:hover,
+.domain-tile:hover {
+  border-color: #333;
+  box-shadow: 0 0 0 1px #ffffff08 inset;
 }
 
 .display {
@@ -60,6 +102,30 @@ a {
 
 .mono {
   font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+.hero-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(800px 360px at 15% 0%, #1a3a2c88 0%, transparent 55%),
+    radial-gradient(600px 300px at 90% 20%, #2a1c1088 0%, transparent 50%),
+    linear-gradient(160deg, #141414 0%, #0c0c0c 100%);
+}
+
+.hero-panel::after {
+  content: "";
+  position: absolute;
+  inset: auto -10% -40% auto;
+  width: 55%;
+  height: 90%;
+  background:
+    linear-gradient(135deg, transparent 40%, #3ddc9714 70%, transparent 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 400'%3E%3Cpath fill='%233ddc9718' d='M0 320L80 280 160 300 240 220 320 260 400 140 480 200 560 120 640 180 720 100 800 160V400H0Z'/%3E%3Cpath fill='%23f4d35e10' d='M0 360L100 300 200 340 300 250 400 310 500 210 600 280 700 200 800 260V400H0Z'/%3E%3C/svg%3E")
+      bottom right / cover no-repeat;
+  opacity: 0.9;
+  pointer-events: none;
 }
 
 .maplibregl-popup-content {
@@ -130,7 +196,7 @@ a {
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -139,16 +205,18 @@ a {
 }
 
 .animate-rise {
-  animation: rise 0.5s ease-out both;
+  animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes pulse-dot {
   0%,
   100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.45;
+    transform: scale(0.85);
   }
 }
 
@@ -157,5 +225,87 @@ a {
   height: 7px;
   border-radius: 999px;
   background: var(--accent);
+  box-shadow: 0 0 0 3px #3ddc9722;
   animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@keyframes spark-grow {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.spark-bar {
+  transform-origin: bottom;
+  animation: spark-grow 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.news-marquee {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 140s linear infinite;
+}
+
+.news-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes float-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.float-soft {
+  animation: float-soft 5s ease-in-out infinite;
+}
+
+.section-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.section-kicker::before {
+  content: "";
+  width: 18px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.cmdk-panel {
+  animation: rise 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .spark-bar,
+  .live-dot,
+  .news-marquee,
+  .float-soft,
+  .cmdk-panel {
+    animation: none !important;
+  }
 }

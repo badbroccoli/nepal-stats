@@ -1,37 +1,102 @@
 import { formatMetricValue, timeAgo } from "@/lib/format";
+import { colorAt, scaleForMetricKey } from "@/lib/scales";
 import type { Metric } from "@/lib/types";
+import { FreshnessBadge } from "@/components/visual/FreshnessBadge";
+import { RingGauge } from "@/components/visual/RingGauge";
+import { ScaleLegend } from "@/components/visual/ScaleLegend";
+import { SparkBars } from "@/components/visual/SparkBars";
+
+function isPercentMetric(metric: Metric): boolean {
+  if (metric.format === "percent") return true;
+  if (typeof metric.value !== "number") return false;
+  if (metric.unit === "%" && metric.value >= 0 && metric.value <= 100) return true;
+  return false;
+}
+
+function fallbackAccent(metric: Metric): string {
+  if (metric.key.includes("aqi")) return "#FF9F1C";
+  if (metric.key.includes("quake") || metric.key.includes("incident"))
+    return "var(--danger)";
+  if (metric.delta != null && metric.delta < 0) return "var(--danger)";
+  return "var(--accent)";
+}
 
 export function KpiCard({ metric, large }: { metric: Metric; large?: boolean }) {
+  const percent = isPercentMetric(metric);
+  const numeric = typeof metric.value === "number";
+  const scale = scaleForMetricKey(metric.key);
+  const color =
+    scale && numeric ? colorAt(scale, Number(metric.value)) : fallbackAccent(metric);
+
+  const n = numeric ? Number(metric.value) : 0;
+  // Ring fill: HDI 0–1 → %, percent metrics use scale max when capped (e.g. CPI /20)
+  const ringValue = scale?.id === "hdi" ? n * 100 : n;
+  const ringMax =
+    scale?.id === "hdi"
+      ? 100
+      : percent && scale && scale.max !== 100
+        ? scale.max
+        : 100;
+  const showRing = numeric && (percent || scale?.id === "hdi");
+
   return (
     <article
-      className={`panel animate-rise rounded-sm p-4 ${large ? "md:col-span-2" : ""}`}
+      className={`kpi-card animate-rise relative overflow-hidden rounded-sm p-4 ${
+        large ? "md:col-span-2" : ""
+      }`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
+      <div
+        className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-25 blur-2xl"
+        style={{ background: color }}
+        aria-hidden
+      />
+      <div className="relative flex items-start justify-between gap-2">
+        <h3 className="max-w-[70%] text-xs uppercase tracking-[0.14em] text-[var(--muted)]">
           {metric.label}
         </h3>
-        <span className="mono text-[10px] text-[var(--muted)]">
-          {metric.freshness}
-        </span>
+        <FreshnessBadge freshness={metric.freshness} />
       </div>
-      <div
-        className={`display mt-2 font-medium tabular-nums ${
-          large ? "text-4xl md:text-5xl" : "text-2xl md:text-3xl"
-        }`}
-      >
-        {formatMetricValue(metric.value, metric.format, metric.unit)}
-      </div>
-      {metric.delta != null && (
-        <div
-          className={`mt-1 text-xs ${
-            metric.delta >= 0 ? "text-[var(--accent)]" : "text-[var(--danger)]"
-          }`}
-        >
-          {metric.delta >= 0 ? "+" : ""}
-          {metric.delta}% {metric.deltaLabel ?? ""}
+
+      <div className="relative mt-3 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <div
+            className={`display font-medium tabular-nums tracking-tight ${
+              large ? "text-4xl md:text-5xl" : "text-2xl md:text-3xl"
+            }`}
+            style={{ color: scale ? color : undefined }}
+          >
+            {formatMetricValue(metric.value, metric.format, metric.unit)}
+          </div>
+          {metric.delta != null && (
+            <div
+              className={`mt-1 inline-flex items-center gap-1 text-xs ${
+                metric.delta >= 0
+                  ? "text-[var(--accent)]"
+                  : "text-[var(--danger)]"
+              }`}
+            >
+              <span aria-hidden>{metric.delta >= 0 ? "▲" : "▼"}</span>
+              {metric.delta >= 0 ? "+" : ""}
+              {metric.delta}% {metric.deltaLabel ?? ""}
+            </div>
+          )}
         </div>
-      )}
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
+
+        {showRing ? (
+          <RingGauge
+            value={ringValue}
+            max={ringMax}
+            color={color}
+            size={large ? 84 : 68}
+          />
+        ) : (
+          <SparkBars seed={metric.key} color={color} bars={large ? 14 : 10} />
+        )}
+      </div>
+
+      {scale && numeric && <ScaleLegend scale={scale} value={n} compact />}
+
+      <div className="relative mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
         <span>{metric.source}</span>
         <span>·</span>
         <span>
@@ -39,7 +104,7 @@ export function KpiCard({ metric, large }: { metric: Metric; large?: boolean }) 
         </span>
       </div>
       {metric.description && (
-        <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
+        <p className="relative mt-2 text-xs leading-relaxed text-[var(--muted)]">
           {metric.description}
         </p>
       )}
