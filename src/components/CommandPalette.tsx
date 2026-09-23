@@ -64,14 +64,13 @@ function fuzzy(q: string, hit: Hit): number {
   const needle = q.trim().toLowerCase();
   if (!needle) return 1;
   const hay = `${hit.title} ${hit.titleNp} ${hit.blurb} ${hit.keywords}`.toLowerCase();
+  if (hay.startsWith(needle) || hit.title.toLowerCase().startsWith(needle)) return 4;
   if (hay.includes(needle)) return 3;
-  const parts = needle.split(/\s+/);
-  if (parts.every((p) => hay.includes(p))) return 2;
-  let i = 0;
-  for (const ch of hay) {
-    if (ch === needle[i]) i++;
-    if (i >= needle.length) return 1;
-  }
+  const parts = needle.split(/\s+/).filter(Boolean);
+  if (parts.length > 1 && parts.every((p) => hay.includes(p))) return 2;
+  // word-prefix match (e.g. "earth" → earthquake)
+  const words = hay.split(/[^a-z0-9\u0900-\u097f]+/);
+  if (words.some((w) => w.startsWith(needle))) return 2;
   return 0;
 }
 
