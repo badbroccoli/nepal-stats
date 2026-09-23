@@ -84,8 +84,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="grid items-stretch gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-        <div className="min-h-0">
+      <section className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,2.2fr)_minmax(260px,0.7fr)]">
+        <div className="min-w-0 min-h-0">
           <div className="mb-3 flex items-end justify-between gap-3">
             <div>
               <div className="section-kicker">Geography</div>
@@ -98,15 +98,15 @@ export default async function HomePage() {
               Disasters →
             </Link>
           </div>
-          <div className="h-[520px] min-h-0 overflow-hidden rounded-sm">
+          <div className="h-[560px] min-h-0 overflow-hidden rounded-sm">
             <NepalMap
               incidents={pulse.disasters}
               quakes={pulse.quakes}
-              height="520px"
+              height="560px"
             />
           </div>
         </div>
-        <div className="h-[560px] min-h-0 lg:h-auto lg:min-h-[560px]">
+        <div className="min-w-0 h-[560px] lg:h-auto lg:min-h-[600px]">
           <NewsRail items={pulse.news} />
         </div>
       </section>
