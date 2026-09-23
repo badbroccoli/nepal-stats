@@ -6,11 +6,13 @@ import {
   DisasterFeed,
   HazardMixBars,
 } from "@/components/visual/HazardVisuals";
+import { ScaleLegend } from "@/components/visual/ScaleLegend";
 import { fetchDisasterSnapshot } from "@/lib/connectors/bipad";
 import { fetchNepalEarthquakes } from "@/lib/connectors/usgs";
 import { getDomainMetrics } from "@/lib/connectors/pulse";
 import { DOMAINS } from "@/lib/domains";
 import { timeAgo } from "@/lib/format";
+import { bandAt, colorAt, SCALES } from "@/lib/scales";
 import type { DisasterIncident } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -166,14 +168,20 @@ export default async function DisastersPage() {
           <div className="panel rounded-sm p-4">
             <div className="section-kicker mb-2">USGS</div>
             <h2 className="display mb-3 text-lg">Earthquakes</h2>
-            <ul className="space-y-2 text-sm">
+            <ScaleLegend
+              scale={SCALES.quake_mag}
+              value={quakes[0]?.mag ?? 3}
+              compact
+            />
+            <ul className="mt-3 space-y-2 text-sm">
               {quakes.length === 0 && (
                 <li className="text-[var(--muted)]">
                   No recent events in bbox.
                 </li>
               )}
               {quakes.slice(0, 8).map((q) => {
-                const intensity = Math.min(1, Math.max(0.2, q.mag / 7));
+                const color = colorAt(SCALES.quake_mag, q.mag);
+                const band = bandAt(SCALES.quake_mag, q.mag);
                 return (
                   <li
                     key={q.id}
@@ -182,15 +190,18 @@ export default async function DisastersPage() {
                     <div
                       className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-sm"
                       style={{
-                        background: `rgba(255,107,107,${0.12 + intensity * 0.35})`,
-                        boxShadow: `inset 0 0 0 1px rgba(255,107,107,${0.3 + intensity * 0.4})`,
+                        background: `${color}22`,
+                        boxShadow: `inset 0 0 0 1px ${color}66`,
                       }}
                     >
-                      <span className="mono text-sm leading-none text-[var(--danger)]">
+                      <span
+                        className="mono text-sm leading-none"
+                        style={{ color }}
+                      >
                         {q.mag.toFixed(1)}
                       </span>
                       <span className="text-[8px] uppercase text-[var(--muted)]">
-                        mag
+                        {band.label}
                       </span>
                     </div>
                     <div className="min-w-0">

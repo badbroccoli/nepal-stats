@@ -1,7 +1,9 @@
 import { formatMetricValue, timeAgo } from "@/lib/format";
+import { colorAt, scaleForMetricKey } from "@/lib/scales";
 import type { Metric } from "@/lib/types";
 import { FreshnessBadge } from "@/components/visual/FreshnessBadge";
 import { RingGauge } from "@/components/visual/RingGauge";
+import { ScaleLegend } from "@/components/visual/ScaleLegend";
 import { SparkBars } from "@/components/visual/SparkBars";
 
 function isPercentMetric(metric: Metric): boolean {
@@ -11,7 +13,7 @@ function isPercentMetric(metric: Metric): boolean {
   return false;
 }
 
-function accentFor(metric: Metric): string {
+function fallbackAccent(metric: Metric): string {
   if (metric.key.includes("aqi")) return "#FF9F1C";
   if (metric.key.includes("quake") || metric.key.includes("incident"))
     return "var(--danger)";
@@ -22,7 +24,20 @@ function accentFor(metric: Metric): string {
 export function KpiCard({ metric, large }: { metric: Metric; large?: boolean }) {
   const percent = isPercentMetric(metric);
   const numeric = typeof metric.value === "number";
-  const color = accentFor(metric);
+  const scale = scaleForMetricKey(metric.key);
+  const color =
+    scale && numeric ? colorAt(scale, Number(metric.value)) : fallbackAccent(metric);
+
+  const n = numeric ? Number(metric.value) : 0;
+  // Ring fill: HDI 0–1 → %, percent metrics use scale max when capped (e.g. CPI /20)
+  const ringValue = scale?.id === "hdi" ? n * 100 : n;
+  const ringMax =
+    scale?.id === "hdi"
+      ? 100
+      : percent && scale && scale.max !== 100
+        ? scale.max
+        : 100;
+  const showRing = numeric && (percent || scale?.id === "hdi");
 
   return (
     <article
@@ -31,7 +46,7 @@ export function KpiCard({ metric, large }: { metric: Metric; large?: boolean }) 
       }`}
     >
       <div
-        className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-20 blur-2xl"
+        className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full opacity-25 blur-2xl"
         style={{ background: color }}
         aria-hidden
       />
@@ -48,6 +63,7 @@ export function KpiCard({ metric, large }: { metric: Metric; large?: boolean }) 
             className={`display font-medium tabular-nums tracking-tight ${
               large ? "text-4xl md:text-5xl" : "text-2xl md:text-3xl"
             }`}
+            style={{ color: scale ? color : undefined }}
           >
             {formatMetricValue(metric.value, metric.format, metric.unit)}
           </div>
@@ -66,12 +82,19 @@ export function KpiCard({ metric, large }: { metric: Metric; large?: boolean }) 
           )}
         </div>
 
-        {percent && numeric ? (
-          <RingGauge value={Number(metric.value)} color={color} size={large ? 84 : 68} />
+        {showRing ? (
+          <RingGauge
+            value={ringValue}
+            max={ringMax}
+            color={color}
+            size={large ? 84 : 68}
+          />
         ) : (
           <SparkBars seed={metric.key} color={color} bars={large ? 14 : 10} />
         )}
       </div>
+
+      {scale && numeric && <ScaleLegend scale={scale} value={n} compact />}
 
       <div className="relative mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted)]">
         <span>{metric.source}</span>
