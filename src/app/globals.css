@@ -54,10 +54,15 @@ body::before {
   mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
 }
 
-main,
-header {
+main {
   position: relative;
   z-index: 1;
+}
+
+/* Keep header above page content so cluster menus aren't covered */
+header {
+  position: relative;
+  z-index: 40;
 }
 
 a {
