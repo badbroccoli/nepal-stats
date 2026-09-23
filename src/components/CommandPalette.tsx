@@ -30,6 +30,8 @@ function buildHits(): Hit[] {
 
   for (const cluster of DOMAIN_CLUSTERS) {
     for (const d of domainsInCluster(cluster)) {
+      const aliases =
+        d.id === "disasters" ? " earthquake earthquake quake seismic" : "";
       hits.push({
         href: d.href,
         title: d.title,
@@ -37,7 +39,7 @@ function buildHits(): Hit[] {
         blurb: d.blurb,
         accent: d.accent,
         group: cluster.label,
-        keywords: `${d.id} ${d.title} ${d.titleNp} ${d.blurb} ${cluster.label}`,
+        keywords: `${d.id} ${d.title} ${d.titleNp} ${d.blurb} ${cluster.label}${aliases}`,
       });
     }
   }
