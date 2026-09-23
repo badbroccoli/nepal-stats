@@ -290,12 +290,17 @@ a {
   background: var(--accent);
 }
 
+.cmdk-panel {
+  animation: rise 0.18s ease-out both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
   .spark-bar,
   .live-dot,
   .news-marquee,
-  .float-soft {
+  .float-soft,
+  .cmdk-panel {
     animation: none !important;
   }
 }
