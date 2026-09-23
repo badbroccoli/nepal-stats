@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { CSSProperties } from "react";
 import { DOMAINS } from "@/lib/domains";
 
 export function Nav() {
@@ -22,10 +23,10 @@ export function Nav() {
         <nav className="hidden flex-1 items-center gap-1 overflow-x-auto lg:flex">
           <Link
             href="/"
-            className={`rounded px-2 py-1 text-xs ${
+            className={`rounded-sm px-2.5 py-1 text-xs transition ${
               pathname === "/"
-                ? "bg-[#1a1a1a] text-[var(--accent)]"
-                : "text-[var(--muted)] hover:text-white"
+                ? "bg-[#3ddc9718] text-[var(--accent)] shadow-[inset_0_-1px_0_0_var(--accent)]"
+                : "text-[var(--muted)] hover:bg-[#ffffff08] hover:text-white"
             }`}
           >
             Pulse
@@ -34,18 +35,23 @@ export function Nav() {
             <Link
               key={d.id}
               href={d.href}
-              className={`whitespace-nowrap rounded px-2 py-1 text-xs ${
+              className={`whitespace-nowrap rounded-sm px-2.5 py-1 text-xs transition ${
                 pathname === d.href
-                  ? "bg-[#1a1a1a] text-white"
-                  : "text-[var(--muted)] hover:text-white"
+                  ? "bg-[#ffffff10] text-white shadow-[inset_0_-1px_0_0_var(--tile)]"
+                  : "text-[var(--muted)] hover:bg-[#ffffff08] hover:text-white"
               }`}
+              style={
+                pathname === d.href
+                  ? ({ ["--tile" as string]: d.accent } as CSSProperties)
+                  : undefined
+              }
             >
               {d.title.split(" & ")[0]}
             </Link>
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2 text-[10px] uppercase tracking-wider text-[var(--muted)]">
+        <div className="ml-auto flex items-center gap-2 rounded-sm border border-[#3ddc9730] bg-[#3ddc970c] px-2.5 py-1 text-[10px] uppercase tracking-wider text-[var(--accent)]">
           <span className="live-dot" />
           Live feeds
         </div>

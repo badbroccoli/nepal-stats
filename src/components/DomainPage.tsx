@@ -21,6 +21,7 @@ export function DomainPage({
         title={meta.title}
         titleNp={meta.titleNp}
         blurb={meta.blurb}
+        accent={meta.accent}
       />
       <MetricGrid metrics={metrics} />
       {children}
